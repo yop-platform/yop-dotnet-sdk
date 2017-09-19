@@ -1,0 +1,90 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{D0C4F97E-5856-435C-8762-1AE7E32B04EC}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SDK</RootNamespace>
+    <AssemblyName>YOP.SDK</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="BouncyCastle.Crypto">
+      <HintPath>..\..\bccrypto-csharp-1.8.1-bin\BouncyCastle.Crypto.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\dlls\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="common\StringUtils.cs" />
+    <Compile Include="common\TimeStamp.cs" />
+    <Compile Include="enums\FormatType.cs" />
+    <Compile Include="enums\HttpMethodType.cs" />
+    <Compile Include="error\YopError.cs" />
+    <Compile Include="error\YopSubError.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="yop.utils\Base64SecureURL.cs" />
+    <Compile Include="yop.utils\RsaAndAes.cs" />
+    <Compile Include="yop.utils\SHA1withRSA.cs" />
+    <Compile Include="yop.client\YopClient.cs" />
+    <Compile Include="yop.client\YopClient3.cs" />
+    <Compile Include="yop.client\YopConfig.cs" />
+    <Compile Include="yop.client\YopConstants.cs" />
+    <Compile Include="yop.client\YopRequest.cs" />
+    <Compile Include="yop.client\YopResponse.cs" />
+    <Compile Include="yop.encrypt\AESEncrypter.cs" />
+    <Compile Include="yop.encrypt\BlowFish.cs" />
+    <Compile Include="yop.encrypt\Digest.cs" />
+    <Compile Include="yop.encrypt\YopSignUtils.cs" />
+    <Compile Include="yop.exception\YopClientException.cs" />
+    <Compile Include="yop.unmarshaller\YopMarshaller.cs" />
+    <Compile Include="yop.utils\Assert.cs" />
+    <Compile Include="yop.utils\HttpUtils.cs" />
+    <Compile Include="yop.utils\RegexUtil.cs" />
+    <Compile Include="yop.utils\UploadFile.cs" />
+    <Compile Include="yop.utils\UUIDGenerator.cs" />
+    <Compile Include="yop\ErrorCode.cs" />
+    <Compile Include="yop\Region.cs" />
+    <Compile Include="yop\YopErrorResponse.cs" />
+    <Compile Include="yop\YopResponseMetadata.cs" />
+    <Compile Include="yop\YopServiceException.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

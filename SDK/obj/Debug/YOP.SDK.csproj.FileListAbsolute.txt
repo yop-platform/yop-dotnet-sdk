@@ -1,0 +1,14 @@
+C:\Users\Administrator\Desktop\yop-net-sdk\SDK\obj\Debug\YOP.SDK.csprojResolveAssemblyReference.cache
+C:\Users\Administrator\Desktop\yop-net-sdk\SDK\bin\Debug\YOP.SDK.dll
+C:\Users\Administrator\Desktop\yop-net-sdk\SDK\bin\Debug\YOP.SDK.pdb
+C:\Users\Administrator\Desktop\yop-net-sdk\SDK\bin\Debug\crypto.dll
+C:\Users\Administrator\Desktop\yop-net-sdk\SDK\bin\Debug\Newtonsoft.Json.dll
+C:\Users\Administrator\Desktop\yop-net-sdk\SDK\bin\Debug\crypto.xml
+C:\Users\Administrator\Desktop\yop-net-sdk\SDK\obj\Debug\YOP.SDK.dll
+C:\Users\Administrator\Desktop\yop-net-sdk\SDK\obj\Debug\YOP.SDK.pdb
+D:\yop-net-sdk-new\SDK\obj\Debug\YOP.SDK.dll
+D:\yop-net-sdk-new\SDK\obj\Debug\YOP.SDK.pdb
+D:\yop-net-sdk-new\SDK\bin\Debug\YOP.SDK.dll
+D:\yop-net-sdk-new\SDK\bin\Debug\YOP.SDK.pdb
+D:\yop-net-sdk-new\SDK\bin\Debug\BouncyCastle.Crypto.dll
+D:\yop-net-sdk-new\SDK\obj\Debug\YOP.SDK.csprojResolveAssemblyReference.cache

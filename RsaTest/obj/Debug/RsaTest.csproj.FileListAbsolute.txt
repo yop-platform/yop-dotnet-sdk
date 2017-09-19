@@ -1,0 +1,9 @@
+D:\yop-net-sdk-new\RsaTest\bin\RsaTest.dll
+D:\yop-net-sdk-new\RsaTest\bin\RsaTest.pdb
+D:\yop-net-sdk-new\RsaTest\bin\YOP.SDK.dll
+D:\yop-net-sdk-new\RsaTest\bin\Newtonsoft.Json.dll
+D:\yop-net-sdk-new\RsaTest\bin\BouncyCastle.Crypto.dll
+D:\yop-net-sdk-new\RsaTest\bin\YOP.SDK.pdb
+D:\yop-net-sdk-new\RsaTest\obj\Debug\RsaTest.csprojResolveAssemblyReference.cache
+D:\yop-net-sdk-new\RsaTest\obj\Debug\RsaTest.dll
+D:\yop-net-sdk-new\RsaTest\obj\Debug\RsaTest.pdb
