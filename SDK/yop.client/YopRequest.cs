@@ -89,6 +89,7 @@ namespace SDK.yop.client
 
         public YopRequest()
         {
+
             this.appKey = YopConfig.getAppKey();
             this.secretKey = YopConfig.getSecret();
             this.serverRoot = YopConfig.getServerRoot();
@@ -97,7 +98,28 @@ namespace SDK.yop.client
             //paramMap.Add(YopConstants.FORMAT, format.ToString());
             paramMap.Add(YopConstants.VERSION, version);
             paramMap.Add(YopConstants.LOCALE, locale);
-            paramMap.Add(YopConstants.TIMESTAMP, "123456");
+            paramMap.Add(YopConstants.TIMESTAMP, GetTimeStamp(DateTime.Now));
+        }
+        /// <summary>  
+        /// 将c# DateTime时间格式转换为Unix时间戳格式  
+        /// </summary>  
+        /// <param name="time">时间</param>  
+        /// <returns>long</returns>  
+        public static long ConvertDateTimeToInt(System.DateTime time)
+        {
+            System.DateTime startTime = TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1, 0, 0, 0, 0));
+            long t = (time.Ticks - startTime.Ticks) / 10000;   //除10000调整为13位      
+            return t;
+        }
+
+        /// <summary>
+        /// 获取时间戳
+        /// </summary>
+        /// <returns></returns>
+        public static string GetTimeStamp(System.DateTime time, int length = 13)
+        {
+            long ts = ConvertDateTimeToInt(time);
+            return ts.ToString().Substring(0, length);
         }
 
         /// <summary>

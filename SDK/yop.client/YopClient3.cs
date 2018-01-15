@@ -135,6 +135,20 @@ namespace SDK.yop.client
             request.setAbsoluteURL(serverUrl);
             //request.encoding("");
 
+            Hashtable headers = SignRsaParameter(methodOrUri, request);
+
+
+            //请求网站
+            request.encoding("");
+            Stream stream = HttpUtils.PostAndGetHttpWebResponse(request, "POST", headers).GetResponseStream();
+            string content = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
+            return content;
+
+
+        }
+
+        private static Hashtable SignRsaParameter(String methodOrUri, YopRequest request)
+        {
             Assert.notNull(request.getSecretKey(), "secretKey must be specified");
             string appKey = request.getParamValue(YopConstants.APP_KEY);
             if (StringUtils.isBlank(appKey))
@@ -148,8 +162,8 @@ namespace SDK.yop.client
             string timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzzz", DateTimeFormatInfo.InvariantInfo);
             String requestId = Guid.NewGuid().ToString();
 
-            requestId = "654321";
-            timestamp = "2016-02-25T08:57:48Z";
+            //string requestId = "654321";
+            //string timestamp = "2016-02-25T08:57:48Z";
 
             //string[] headers = new string[] { };
 
@@ -229,15 +243,7 @@ namespace SDK.yop.client
 
             headers.Add("Authorization", "YOP-RSA2048-SHA256 " + protocolVersion + "/" + appKey + "/" + timestamp + "/" + EXPIRED_SECONDS + "/" + signedHeaders + "/" + signToBase64);
 
-
-
-            //请求网站
-            request.encoding("");
-            Stream stream = HttpUtils.PostAndGetHttpWebResponse(request, "POST", headers).GetResponseStream();
-            string content = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
-            return content;
-
-
+            return headers;
         }
         private static void signAndEncrypt(String apiUri, YopRequest request)
         {
@@ -251,7 +257,25 @@ namespace SDK.yop.client
         /// <returns>响应对象</returns>
         public static YopResponse uploadRsa(String apiUri, YopRequest request)
         {
-            return null;
+            string content = uploadRsaForString(apiUri, request);
+
+            YopResponse response = null;
+            if (request.getFormat() == FormatType.json)
+            {
+                response = (YopResponse)JsonConvert.DeserializeObject(content, typeof(YopResponse));
+            }
+            else
+            {
+                XmlDocument doc = new XmlDocument();
+                doc.LoadXml(content);
+                string jsonText = JsonConvert.SerializeXmlNode(doc, Newtonsoft.Json.Formatting.Indented);
+                JObject jo = JObject.Parse(jsonText);
+                string strValue = jo["response"].ToString();
+                response = (YopResponse)JsonConvert.DeserializeObject(strValue, typeof(YopResponse));
+            }
+
+            handleRsaResult(request, response, content);
+            return response;
         }
         /// <summary>
         /// 发起文件上传请求，以字符串返回
@@ -261,7 +285,26 @@ namespace SDK.yop.client
         /// <returns>字符串形式的响应</returns>
         public static String uploadRsaForString(String apiUri, YopRequest request)
         {
-            return null;
+            string serverUrl = richRequest(apiUri, request);
+            //signAndEncrypt(request);
+            request.setAbsoluteURL(serverUrl);
+            //request.encoding("");
+            string strTemp = request.getParamValue("_file");
+
+            request.removeParam("_file");
+
+            Hashtable headers = SignRsaParameter(apiUri, request);
+
+            request.addParam("_file",strTemp);
+            //请求网站
+            //request.encoding("");
+
+            Stream stream = HttpUtils.PostAndGetHttpWebResponse(request, "PUT", headers).GetResponseStream();
+            string content = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
+            return content;
+
+ 
+
         }
 
 
