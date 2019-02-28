@@ -6,7 +6,7 @@ namespace SDK.yop.client
 {
     public class YopConfig
     {
-        private static string serverRoot = "https://open.yeepay.com/yop-center";
+        private static string serverRoot = "https://openapi.yeepay.com/yop-center";
 
         /// <summary>
         /// 开放应用名
