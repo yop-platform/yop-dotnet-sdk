@@ -29,7 +29,8 @@ namespace SDK.yop.utils
                 //ServicePointManager.CertificatePolicy = new AcceptAllCertificatePolicy();
 
                 System.GC.Collect();//垃圾回收
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3;
+                     ServicePointManager.SecurityProtocol = (SecurityProtocolType)48 | (SecurityProtocolType)192 | (SecurityProtocolType)768 | (SecurityProtocolType)3072;
+                //ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3;
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(targetUrl);
                 request.Timeout = yopRequest.getReadTimeout();
                 request.Method = method.ToUpper();
