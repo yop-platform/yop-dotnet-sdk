@@ -33,22 +33,8 @@ namespace SDK.yop.client
             //YopResponse response = YopMarshallerUtils.unmarshal(content,
             //        request.getFormat(), YopResponse.class);
             //  return response;
-            YopResponse response = null;
-            if (request.getFormat() == FormatType.json)
-            {
-                response = (YopResponse)JsonConvert.DeserializeObject(content, typeof(YopResponse));
-            }
-            else
-            {
-                XmlDocument doc = new XmlDocument();
-                doc.LoadXml(content);
-                string jsonText = JsonConvert.SerializeXmlNode(doc, Newtonsoft.Json.Formatting.Indented);
-                JObject jo = JObject.Parse(jsonText);
-                string strValue = jo["response"].ToString();
-                response = (YopResponse)JsonConvert.DeserializeObject(strValue, typeof(YopResponse));
-            }
-
-            handleResult(request, response, content);
+            YopResponse response = new YopResponse();
+            response.result = content;
             return response;
         }
 
@@ -64,22 +50,8 @@ namespace SDK.yop.client
             //YopResponse response = YopMarshallerUtils.unmarshal(content,
             //        request.getFormat(), YopResponse.class);
             //  handleResult(request, response, content);
-            YopResponse response = null;
-            if (request.getFormat() == FormatType.json)
-            {
-                response = (YopResponse)JsonConvert.DeserializeObject(content, typeof(YopResponse));
-            }
-            else
-            {
-                XmlDocument doc = new XmlDocument();
-                doc.LoadXml(content);
-                string jsonText = JsonConvert.SerializeXmlNode(doc, Newtonsoft.Json.Formatting.Indented);
-                JObject jo = JObject.Parse(jsonText);
-                string strValue = jo["response"].ToString();
-                response = (YopResponse)JsonConvert.DeserializeObject(strValue, typeof(YopResponse));
-            }
-
-            handleResult(request, response, content);
+            YopResponse response = new YopResponse();
+            response.result = content;
             return response;
         }
 
@@ -190,12 +162,12 @@ namespace SDK.yop.client
             //  }
             string serverUrl = richRequest(HttpMethodType.GET, methodOrUri,
                      request);
-            signAndEncrypt(request);
+            Hashtable headers = signAndEncrypt(request);
             request.setAbsoluteURL(serverUrl);
             request.encoding("");
             //请求网站
 
-            Stream stream = HttpUtils.PostAndGetHttpWebResponse(request, "GET").GetResponseStream();
+            Stream stream = HttpUtils.PostAndGetHttpWebResponse(request, "GET", headers).GetResponseStream();
             string content = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
             return content;
         }
@@ -210,12 +182,12 @@ namespace SDK.yop.client
         {
             string serverUrl = richRequest(HttpMethodType.POST, methodOrUri,
                     request);
-            signAndEncrypt(request);
+            Hashtable headers = signAndEncrypt(request);
             request.setAbsoluteURL(serverUrl);
             request.encoding("");
             //请求网站
 
-            Stream stream = HttpUtils.PostAndGetHttpWebResponse(request, "POST").GetResponseStream();
+            Stream stream = HttpUtils.PostAndGetHttpWebResponse(request, "POST", headers).GetResponseStream();
             string content = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
             return content;
             //string content = getRestTemplate(request).postForObject(serverUrl,
@@ -316,7 +288,7 @@ namespace SDK.yop.client
         /// 简单校验及请求签名
         /// </summary>
         /// <param name="request"></param>
-        public static void signAndEncrypt(YopRequest request)
+        public static Hashtable signAndEncrypt(YopRequest request)
         {
             Assert.notNull(request.getMethod(), "method must be specified");
             Assert.notNull(request.getSecretKey(), "secretKey must be specified");
@@ -330,7 +302,24 @@ namespace SDK.yop.client
             string signValue = YopSignUtils.sign(toSimpleMap(request.getParams()),
                     request.getIgnoreSignParams(), request.getSecretKey(),
                     request.getSignAlg());
-            request.addParam(YopConstants.SIGN, signValue);
+            Hashtable headers = new Hashtable();
+
+            string timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzzz", DateTimeFormatInfo.InvariantInfo);
+
+            //request.addParam(YopConstants.SIGN, signValue);
+            headers.Add("x-yop-appkey", appKey);
+            headers.Add("x-yop-date", timestamp);
+            headers.Add("Authorization", "YOP-HMAC-AES128 "+ signValue);
+
+
+            String requestId = Guid.NewGuid().ToString("N");
+            request.setYopRequestId(requestId);
+
+            headers.Add("x-yop-sdk-langs", YopConfig.getSdkLangs());
+            headers.Add("x-yop-sdk-version", YopConfig.getSdkVersion());
+            headers.Add("x-yop-request-id", requestId);
+
+
             if (request.IsRest())
             {
                 request.removeParam(YopConstants.METHOD);
@@ -349,6 +338,7 @@ namespace SDK.yop.client
                     throw new Exception(e.Message);
                 }
             }
+            return headers;
         }
 
 

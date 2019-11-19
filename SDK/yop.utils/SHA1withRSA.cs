@@ -29,6 +29,36 @@ namespace SDK.yop.utils
             }
 
         }
+        
+        //HMAC SHA256
+        public static Object HashHmac(string signatureString, string secretKey, bool raw_output = false)
+        {
+            var enc = Encoding.UTF8;
+            HMACSHA256 hmac = new HMACSHA256(enc.GetBytes(secretKey));
+            hmac.Initialize();
+
+            byte[] buffer = enc.GetBytes(signatureString);
+            if (raw_output)
+            {
+                return hmac.ComputeHash(buffer);
+            }
+            else
+            {
+                return BitConverter.ToString(hmac.ComputeHash(buffer)).Replace("-", "").ToLower();
+            }
+        }
+
+        public static string ToHmacData(Dictionary<string, string> hmacData)
+        {
+            string content = "";
+            foreach (KeyValuePair<string, string> kvp in hmacData)
+            {
+                content += kvp.Key + "=" + kvp.Value + "&";
+            }
+            content = content.Substring(0, content.Length - 1);
+            return content;
+        }
+
         /// <summary>
         /// pem格式公钥验签
         /// </summary>

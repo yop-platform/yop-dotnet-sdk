@@ -39,6 +39,11 @@ namespace SDK.yop.client
         public string stringResult { get; set; }
 
         /**
+         * 字符串形式的错误信息
+         */
+        public string stringError { get; set; }
+
+        /**
          * 响应格式，冗余字段，跟Request的format相同，用于解析结果
          */
         public FormatType format { get; set; }
@@ -47,8 +52,6 @@ namespace SDK.yop.client
          * 业务结果签名是否合法，冗余字段
          */
         public bool validSign { get; set; }
-
-
 
         public bool isValidSign()
         {
@@ -60,9 +63,8 @@ namespace SDK.yop.client
          */
         public bool isSuccess()
         {
-            return YopConstants.SUCCESS.Equals(state);
+            return YopConstants.SUCCESS.Equals("SUCCESS");
         }
-
 
         ///**
         // * 将业务结果转换为自定义对象（参数映射）
