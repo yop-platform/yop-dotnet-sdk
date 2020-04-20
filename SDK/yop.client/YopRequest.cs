@@ -21,7 +21,7 @@ namespace SDK.yop.client
 
         private string locale = "zh_CN";
 
-        private string version = "3.2.13";
+        private string version = "3.2.15";
 
         private string signAlg = YopConstants.ALG_SHA1;
 

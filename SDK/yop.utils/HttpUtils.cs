@@ -29,7 +29,7 @@ namespace SDK.yop.utils
                 //ServicePointManager.CertificatePolicy = new AcceptAllCertificatePolicy();
 
                 System.GC.Collect();//垃圾回收
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3;
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls;
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(targetUrl);
                 request.Timeout = yopRequest.getReadTimeout();
                 request.Method = method.ToUpper();
@@ -46,7 +46,7 @@ namespace SDK.yop.utils
                 request.Accept = "*/*";
                 //request.Accept = "image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/x-shockwave-flash, application/vnd.ms-excel, application/vnd.ms-powerpoint, application/msword, application/x-ms-application, application/x-ms-xbap, application/vnd.ms-xpsdocument, application/xaml+xml, */*";
                 request.ContentType = "application/x-www-form-urlencoded";
-                request.UserAgent = ".NET/3.2.13";
+                request.UserAgent = ".NET/3.2.15";
                 //request.Referer = refererUrl;
                 request.CookieContainer = cc;
                 request.ServicePoint.Expect100Continue = false;
