@@ -6,6 +6,7 @@ using System.IO;
 using System.Collections.Specialized;
 using System.Collections;
 using System.Web;
+using System.Linq;
 namespace SDK.yop.utils
 {
     using client;
@@ -28,7 +29,7 @@ namespace SDK.yop.utils
                 //ServicePointManager.CertificatePolicy = new AcceptAllCertificatePolicy();
 
                 System.GC.Collect();//垃圾回收
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3;
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls;
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(targetUrl);
                 request.Timeout = yopRequest.getReadTimeout();
                 request.Method = method.ToUpper();
@@ -40,14 +41,12 @@ namespace SDK.yop.utils
                         string value = (string)headers[key];
                         request.Headers.Add(key, value);
                     }
-
                 }
 
-
-                request.Accept = "image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/x-shockwave-flash, application/vnd.ms-excel, application/vnd.ms-powerpoint, application/msword, application/x-ms-application, application/x-ms-xbap, application/vnd.ms-xpsdocument, application/xaml+xml, */*";
+                request.Accept = "*/*";
+                //request.Accept = "image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/x-shockwave-flash, application/vnd.ms-excel, application/vnd.ms-powerpoint, application/msword, application/x-ms-application, application/x-ms-xbap, application/vnd.ms-xpsdocument, application/xaml+xml, */*";
                 request.ContentType = "application/x-www-form-urlencoded";
-                request.ContentLength = method.ToUpper().Trim() == "POST" ? data.Length : 0;
-                request.UserAgent = "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727; .NET CLR 3.0.04506.648; .NET CLR 3.5.21022; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)";
+                request.UserAgent = ".NET/3.2.15";
                 //request.Referer = refererUrl;
                 request.CookieContainer = cc;
                 request.ServicePoint.Expect100Continue = false;
@@ -58,9 +57,82 @@ namespace SDK.yop.utils
 
                 if (method.ToUpper() == "POST")
                 {
+                    request.ContentLength = method.ToUpper().Trim() == "POST" ? data.Length : 0;
+
                     Stream newStream = request.GetRequestStream();
                     newStream.Write(data, 0, data.Length);
                     newStream.Close();
+                }
+
+                if (method.ToUpper() == "PUT")
+                {
+
+                    string boundary = "---------------------------" + DateTime.Now.Ticks.ToString("x");
+                    byte[] boundarybytes = Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
+                    byte[] endbytes = Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
+
+
+                    request.ContentType = "multipart/form-data; boundary=" + boundary;
+                    request.Method = "POST";
+                    request.KeepAlive = true;
+                    request.Credentials = CredentialCache.DefaultCredentials;
+
+                    Stream newStream = request.GetRequestStream();
+
+                    //1.1 key/value
+
+                    Dictionary<string, string> stringDict = new Dictionary<string, string>();
+
+                    ArrayList aryParam = new ArrayList(param.Split('&'));
+
+                    for (int i = 0; i < aryParam.Count; i++)
+                    {
+                        string a = (String)aryParam[i];             //遍历，并且赋值给了a
+                        int n = a.IndexOf("=");
+                        stringDict.Add(a.Substring(0, n), a.Substring(n + 1));
+
+                    }
+
+
+                    string formdataTemplate = "Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}";
+                    if (stringDict != null)
+                    {
+                        foreach (string key in stringDict.Keys)
+                        {
+                            if (key.Equals("_file")) { continue; }
+                            newStream.Write(boundarybytes, 0, boundarybytes.Length);
+                            string formitem = string.Format(formdataTemplate, key, stringDict[key]);
+                            byte[] formitembytes = Encoding.UTF8.GetBytes(formitem);
+                            newStream.Write(formitembytes, 0, formitembytes.Length);
+                        }
+                    }
+
+
+                    //1.2 file
+                    string headerTemplate = "Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: application/octet-stream\r\n\r\n";
+                    byte[] buffer = new byte[4096];
+                    int bytesRead = 0;
+
+                    string filePath = yopRequest.getParamValue("_file"); 
+
+                    newStream.Write(boundarybytes, 0, boundarybytes.Length);
+                    string header = string.Format(headerTemplate, "_file", Path.GetFileName(filePath));
+                    byte[] headerbytes = Encoding.UTF8.GetBytes(header);
+                    newStream.Write(headerbytes, 0, headerbytes.Length);
+                    using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+                    {
+                    while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
+                        {
+                            newStream.Write(buffer, 0, bytesRead);
+                        }
+                    }
+                   
+
+                    //1.3 form end
+                    newStream.Write(endbytes, 0, endbytes.Length);
+
+                    newStream.Close();
+
                 }
 
                 HttpWebResponse response = (HttpWebResponse)request.GetResponse();

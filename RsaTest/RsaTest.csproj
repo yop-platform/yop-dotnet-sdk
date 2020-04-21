@@ -62,6 +62,8 @@
     <Content Include="Scripts\jquery-1.4.1-vsdoc.js" />
     <Content Include="Scripts\jquery-1.4.1.js" />
     <Content Include="Scripts\jquery-1.4.1.min.js" />
+    <Content Include="test4.aspx" />
+    <Content Include="test5.aspx" />
     <Content Include="Web.config" />
     <Content Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
@@ -132,6 +134,20 @@
     <Compile Include="test3.aspx.designer.cs">
       <DependentUpon>test3.aspx</DependentUpon>
     </Compile>
+    <Compile Include="test4.aspx.cs">
+      <DependentUpon>test4.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="test4.aspx.designer.cs">
+      <DependentUpon>test4.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="test5.aspx.cs">
+      <DependentUpon>test5.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="test5.aspx.designer.cs">
+      <DependentUpon>test5.aspx</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
@@ -154,7 +170,7 @@
         <WebProjectProperties>
           <UseIIS>False</UseIIS>
           <AutoAssignPort>True</AutoAssignPort>
-          <DevelopmentServerPort>27372</DevelopmentServerPort>
+          <DevelopmentServerPort>29644</DevelopmentServerPort>
           <DevelopmentServerVPath>/</DevelopmentServerVPath>
           <IISUrl>
           </IISUrl>

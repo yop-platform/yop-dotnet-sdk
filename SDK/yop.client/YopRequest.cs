@@ -21,7 +21,7 @@ namespace SDK.yop.client
 
         private string locale = "zh_CN";
 
-        private string version = "1.0";
+        private string version = "3.2.15";
 
         private string signAlg = YopConstants.ALG_SHA1;
 
@@ -87,8 +87,11 @@ namespace SDK.yop.client
         /// </summary>
         private string absoluteURL;
 
+        private string yopRequestId;
+
         public YopRequest()
         {
+
             this.appKey = YopConfig.getAppKey();
             this.secretKey = YopConfig.getSecret();
             this.serverRoot = YopConfig.getServerRoot();
@@ -97,7 +100,28 @@ namespace SDK.yop.client
             //paramMap.Add(YopConstants.FORMAT, format.ToString());
             paramMap.Add(YopConstants.VERSION, version);
             paramMap.Add(YopConstants.LOCALE, locale);
-            paramMap.Add(YopConstants.TIMESTAMP, "123456");
+            paramMap.Add(YopConstants.TIMESTAMP, GetTimeStamp(DateTime.Now));
+        }
+        /// <summary>  
+        /// 将c# DateTime时间格式转换为Unix时间戳格式  
+        /// </summary>  
+        /// <param name="time">时间</param>  
+        /// <returns>long</returns>  
+        public static long ConvertDateTimeToInt(System.DateTime time)
+        {
+            System.DateTime startTime = TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1, 0, 0, 0, 0));
+            long t = (time.Ticks - startTime.Ticks) / 10000;   //除10000调整为13位      
+            return t;
+        }
+
+        /// <summary>
+        /// 获取时间戳
+        /// </summary>
+        /// <returns></returns>
+        public static string GetTimeStamp(System.DateTime time, int length = 13)
+        {
+            long ts = ConvertDateTimeToInt(time);
+            return ts.ToString().Substring(0, length);
         }
 
         /// <summary>
@@ -113,7 +137,13 @@ namespace SDK.yop.client
             if (appKey != null)
                 paramMap.Set(YopConstants.APP_KEY, appKey);
         }
-
+		
+        public YopRequest(string appKey, string secretKey, string yopPublicKey)
+            : this(appKey, secretKey)
+        {
+            this.yopPublicKey = yopPublicKey;
+        }
+		
         /// <summary>
         /// 同一个工程内部可支持多个开放应用发起调用，且支持调不同的服务器
         /// </summary>
@@ -372,7 +402,17 @@ namespace SDK.yop.client
             }
             return serverRoot;
         }
+		
+        public string getYopRequestId()
+        {
+            return this.yopRequestId;
+        }
 
+        public void setYopRequestId(string yopRequestId)
+        {
+            this.yopRequestId = yopRequestId;
+        }
+		
         public void encoding(string enType)
         {
             try

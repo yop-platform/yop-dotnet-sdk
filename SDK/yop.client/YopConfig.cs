@@ -6,7 +6,13 @@ namespace SDK.yop.client
 {
     public class YopConfig
     {
-        private static string serverRoot = "https://open.yeepay.com/yop-center";
+        private static string serverRoot = "https://openapi.yeepay.com/yop-center";
+
+        private static string yosServerRoot = "https://yos.yeepay.com/yop-center";
+
+        private static string sdkVersion = "3.2.15";
+
+        private static string sdkLangs = "C#";
 
         /// <summary>
         /// 开放应用名
@@ -76,6 +82,21 @@ namespace SDK.yop.client
             YopConfig.serverRoot = serverRoot;
         }
 
+        public static string getYosServerRoot()
+        {
+            return yosServerRoot;
+        }
+
+        public static string getSdkVersion()
+        {
+            return sdkVersion;
+        }
+
+        public static string getSdkLangs()
+        {
+            return sdkLangs;
+        }
+
         public static int getConnectTimeout()
         {
             return connectTimeout;
@@ -110,5 +131,6 @@ namespace SDK.yop.client
                 return hmacSecretKey;
             }
         }
+
     }
 }
