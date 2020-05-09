@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using SDK.yop.utils;
@@ -21,7 +21,7 @@ namespace SDK.yop.client
 
         private string locale = "zh_CN";
 
-        private string version = "3.2.15";
+        private string version = "3.2.17";
 
         private string signAlg = YopConstants.ALG_SHA1;
 

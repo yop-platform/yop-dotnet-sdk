@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
@@ -306,7 +306,8 @@ namespace SDK.yop.client
                     request.getSignAlg());
             Hashtable headers = new Hashtable();
 
-            string timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzzz", DateTimeFormatInfo.InvariantInfo);
+            string timestamp = DateUtils.FormatAlternateIso8601Date(DateTime.Now);
+
 
             //request.addParam(YopConstants.SIGN, signValue);
             headers.Add("x-yop-appkey", appKey);
