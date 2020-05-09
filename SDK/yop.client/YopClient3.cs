@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using SDK.yop.utils;
@@ -170,7 +170,7 @@ namespace SDK.yop.client
 
             Assert.notNull(request.getSecretKey(), "secretKey must be specified");
 
-            string timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:sszzzz", DateTimeFormatInfo.InvariantInfo);
+            string timestamp = DateUtils.FormatAlternateIso8601Date(DateTime.Now);
             String requestId = Guid.NewGuid().ToString();
             request.setYopRequestId(requestId);
 
