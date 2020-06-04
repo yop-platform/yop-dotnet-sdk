@@ -21,7 +21,7 @@ namespace SDK.yop.client
 
         private string locale = "zh_CN";
 
-        private string version = "3.2.17";
+        private string version = "3.2.19";
 
         private string signAlg = YopConstants.ALG_SHA1;
 
@@ -490,7 +490,7 @@ namespace SDK.yop.client
                 List<string> values = new List<string>();
                 System.Diagnostics.Debug.WriteLine(paramMap[key]);
 
-                string[] str = StringUtils.trimToNull(paramMap[key]) == null ? new string[] { "null" } : paramMap[key].Split(',');
+                string[] str = StringUtils.trimToNull(paramMap[key]) == null ? new string[0] : paramMap[key].Split(',');
                 for (int i = 0; i < str.Length; i++)
                 {
                     values.Add(str[i]);
