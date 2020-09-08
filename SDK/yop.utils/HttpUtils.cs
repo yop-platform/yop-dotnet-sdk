@@ -7,12 +7,43 @@ using System.Collections.Specialized;
 using System.Collections;
 using System.Web;
 using System.Linq;
+using SDK.yop.client;
+
 namespace SDK.yop.utils
 {
     using client;
 
     public class HttpUtils
     {
+
+        /// <summary>
+        /// The Set of accepted and valid Url characters per RFC3986.
+        /// Characters outside of this set will be encoded.
+        /// </summary>
+        public const string ValidUrlCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.~";
+
+        /// <summary>
+        /// The set of accepted and valid Url path characters per RFC3986.
+        /// </summary>
+        private static string ValidPathCharacters = DetermineValidPathCharacters();
+
+        // Checks which path characters should not be encoded
+        // This set will be different for .NET 4 and .NET 4.5, as
+        // per http://msdn.microsoft.com/en-us/library/hh367887%28v=vs.110%29.aspx
+        private static string DetermineValidPathCharacters()
+        {
+            const string basePathCharacters = "/:'()!*[]$";
+
+            var sb = new StringBuilder();
+            foreach (var c in basePathCharacters)
+            {
+                var escaped = Uri.EscapeUriString(c.ToString());
+                if (escaped.Length == 1 && escaped[0] == c)
+                    sb.Append(c);
+            }
+            return sb.ToString();
+        }
+
         public static HttpWebResponse PostAndGetHttpWebResponse(YopRequest yopRequest, string method, Hashtable headers = null)//(string targetUrl, string param, string method, int timeOut)
         {
             try
@@ -46,7 +77,7 @@ namespace SDK.yop.utils
                 request.Accept = "*/*";
                 //request.Accept = "image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/x-shockwave-flash, application/vnd.ms-excel, application/vnd.ms-powerpoint, application/msword, application/x-ms-application, application/x-ms-xbap, application/vnd.ms-xpsdocument, application/xaml+xml, */*";
                 request.ContentType = "application/x-www-form-urlencoded";
-                request.UserAgent = ".NET/3.2.19";
+                request.UserAgent = ".NET/" + YopConfig.getSdkVersion();
                 //request.Referer = refererUrl;
                 request.CookieContainer = cc;
                 request.ServicePoint.Expect100Continue = false;
@@ -249,7 +280,21 @@ namespace SDK.yop.utils
 
         public static string normalizePath(string path)
         {
-            return normalize(path).Replace("%2F", "/");
+            StringBuilder sb = new StringBuilder();
+            string unreservedChars = String.Concat(ValidUrlCharacters, ValidPathCharacters));
+            foreach (char symbol in System.Text.Encoding.UTF8.GetBytes(value))
+            {
+                if (unreservedChars.IndexOf(symbol) != -1 )
+                {
+                    sb.Append(symbol);
+                }
+                else
+                {
+                    sb.Append(@"%" + Convert.ToString(symbol, 16));
+                }
+            }
+
+            return (sb.ToString());
         }
 
         /**
@@ -258,53 +303,17 @@ namespace SDK.yop.utils
         */
         public static string normalize(string value)
         {
-
-            return UrlEncode(value, System.Text.Encoding.GetEncoding("UTF-8"), true);
-
-        }
-
-
-        /// <summary>
-        /// UrlEncode重写：小写转大写，特殊字符特换
-        /// </summary>
-        /// <param name="strSrc">原字符串</param>
-        /// <param name="encoding">编码方式</param>
-        /// <param name="bToUpper">是否转大写</param>
-        /// <returns></returns>
-        public static string UrlEncode(string strSrc, System.Text.Encoding encoding, bool bToUpper)
-        {
-            System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
-            for (int i = 0; i < strSrc.Length; i++)
+            StringBuilder sb = new StringBuilder();
+            foreach (char symbol in System.Text.Encoding.UTF8.GetBytes(value))
             {
-                string t = strSrc[i].ToString();
-                //string k = HttpUtility.UrlEncode(t, encoding);
-                string k = Uri.EscapeDataString(t);
-                if (t == k)
+                if (ValidUrlCharacters.IndexOf(symbol) != -1 )
                 {
-                    stringBuilder.Append(t);
+                    sb.Append(symbol);
                 }
                 else
                 {
-                    if (bToUpper)
-                        stringBuilder.Append(k.ToUpper());
-                    else
-                        stringBuilder.Append(k);
+                    sb.Append(@"%" + Convert.ToString(symbol, 16));
                 }
-            }
-            if (bToUpper)
-                return stringBuilder.ToString().Replace("+", "%2B");
-                //return stringBuilder.ToString().Replace("+", "%20");
-            else
-                return stringBuilder.ToString();
-        }
-
-        public static string UrlEncode(string str)
-        {
-            StringBuilder sb = new StringBuilder();
-            byte[] byStr = System.Text.Encoding.UTF8.GetBytes(str); //默认是System.Text.Encoding.Default.GetBytes(str)
-            for (int i = 0; i < byStr.Length; i++)
-            {
-                sb.Append(@"%" + Convert.ToString(byStr[i], 16));
             }
 
             return (sb.ToString());

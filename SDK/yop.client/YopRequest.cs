@@ -21,8 +21,6 @@ namespace SDK.yop.client
 
         private string locale = "zh_CN";
 
-        private string version = "3.2.19";
-
         private string signAlg = YopConstants.ALG_SHA1;
 
         /// <summary>
@@ -98,7 +96,7 @@ namespace SDK.yop.client
             if (YopConfig.getAppKey() != null)
                 paramMap.Add(YopConstants.APP_KEY, YopConfig.getAppKey());
             //paramMap.Add(YopConstants.FORMAT, format.ToString());
-            paramMap.Add(YopConstants.VERSION, version);
+            paramMap.Add(YopConstants.VERSION, YopConfig.getSdkVersion());
             paramMap.Add(YopConstants.LOCALE, locale);
             paramMap.Add(YopConstants.TIMESTAMP, GetTimeStamp(DateTime.Now));
         }
@@ -270,12 +268,6 @@ namespace SDK.yop.client
             paramMap.Set(YopConstants.LOCALE, this.locale);
         }
 
-        public void setVersion(string version)
-        {
-            this.version = version;
-            paramMap.Set(YopConstants.VERSION, this.version);
-        }
-
         public void setMethod(string method)
         {
             this.method = method;
@@ -295,11 +287,6 @@ namespace SDK.yop.client
         public string getLocale()
         {
             return locale;
-        }
-
-        public string getVersion()
-        {
-            return version;
         }
 
         public string getSignAlg()
