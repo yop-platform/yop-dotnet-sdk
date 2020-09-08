@@ -477,8 +477,7 @@ namespace SDK.yop.client
                     {
                         continue;
                     }
-                    arrayList.Add(key + "=" + HttpUtils.UrlEncode(value, System.Text.Encoding.GetEncoding("UTF-8"), true));
-                    //arrayList.Add(key + "=" + HttpUtils.UrlEncode(value));
+                    arrayList.Add(key + "=" + HttpUtils.normalize(value));
                 }
             }
 			
