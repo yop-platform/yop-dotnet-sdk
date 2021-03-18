@@ -63,15 +63,6 @@ namespace SDK.yop.encrypt
             string strContent = string.Empty;
             switch (algorithm.ToUpper().Trim())
             {
-                case YopConstants.ALG_MD5:
-                    strContent = md5Digest(input).ToLower();
-                    break;
-                case YopConstants.ALG_SHA:
-                    strContent = SHA(input);
-                    break;
-                case YopConstants.ALG_SHA1:
-                    strContent = SHA(input);
-                    break;
                 case YopConstants.ALG_SHA256:
                     strContent = SHA256(input);
                     break;

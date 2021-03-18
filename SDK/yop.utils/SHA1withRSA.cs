@@ -27,7 +27,6 @@ namespace SDK.yop.utils
                 byte[] signData = rsa.SignData(Data, sh);
                 return Convert.ToBase64String(signData);
             }
-
         }
         
         //HMAC SHA256
@@ -90,9 +89,7 @@ namespace SDK.yop.utils
                     result = rsaPub.VerifyData(Data, sh, data);
                     return result;
                 }
-
             }
-
         }
 
         /// <summary>
@@ -132,6 +129,7 @@ namespace SDK.yop.utils
             }
             return result;
         }
+
         #region 内部方法
         private static string decrypt(byte[] data, string privateKey, string input_charset)
         {
@@ -146,13 +144,14 @@ namespace SDK.yop.utils
                 //result = ASCIIEncoding.ASCII.GetString(source);
                 return result;
             }
-
         }
+
         private static RSACryptoServiceProvider DecodePemPrivateKey(String pemstr)
         {
             RSACryptoServiceProvider rsa = DecodeRSAPrivateKey(Convert.FromBase64String(pemstr));
             return rsa;
         }
+
         private static RSACryptoServiceProvider DecodePrivateKeyInfo(byte[] pkcs8)
         {
             byte[] SeqOID = { 0x30, 0x0D, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x01, 0x01, 0x05, 0x00 };
@@ -200,6 +199,7 @@ namespace SDK.yop.utils
             }
             finally { binr.Dispose(); }
         }
+
         private static bool CompareBytearrays(byte[] a, byte[] b)
         {
             if (a.Length != b.Length)
@@ -213,6 +213,7 @@ namespace SDK.yop.utils
             }
             return true;
         }
+
         private static RSACryptoServiceProvider DecodeRSAPrivateKey(byte[] privkey)
         {
             byte[] MODULUS, E, D, P, Q, DP, DQ, IQ;
@@ -281,6 +282,7 @@ namespace SDK.yop.utils
                 binr.Dispose();
             }
         }
+
         private static int GetIntegerSize(BinaryReader binr)
         {
             byte bt = 0;
@@ -313,6 +315,7 @@ namespace SDK.yop.utils
             return count;
         }
         #endregion
+
         #region 解析.net 生成的Pem
         private static RSAParameters ConvertFromPublicKey(string pemFileConent)
         {
@@ -337,6 +340,7 @@ namespace SDK.yop.utils
             para.Exponent = pemPublicExponent;
             return para;
         }
+
         /// <summary>
         /// 将pem格式私钥(1024 or 2048)转换为RSAParameters
         /// </summary>
@@ -421,19 +425,15 @@ namespace SDK.yop.utils
             string digestAlg = args[3];
 
             //用私钥对随机密钥进行解密
-
-
-            byte[] randomKey = RsaAndAes.RSADecrypt(RsaAndAes.Base64UrlSafeDecode(encryptedRandomKeyToBase64), private_Key, "RSA");
-            string encryptedData = Encoding.UTF8.GetString(RsaAndAes.AESDecrypt(RsaAndAes.Base64UrlSafeDecode(encryptedDataToBase64), randomKey));
+            byte[] randomKey = RsaAndAes.RSADecrypt(Base64SecureURL.Decode(encryptedRandomKeyToBase64), private_Key, "RSA");
+            string encryptedData = Encoding.UTF8.GetString(RsaAndAes.AESDecrypt(Base64SecureURL.Decode(encryptedDataToBase64), randomKey));
 
             int index = encryptedData.LastIndexOf('$');
 
             string signToBase64 = encryptedData.Substring(index + 1);
             string sourceData = encryptedData.Substring(0, index);
 
-
-            bool res = SHA1withRSA.verify(sourceData, HttpUtils.Base64UrlDecode(signToBase64), public_Key, "UTF-8", digestAlg);
-
+            bool res = SHA1withRSA.verify(sourceData, Base64SecureURL.Decode(signToBase64), public_Key, "UTF-8", digestAlg);
             if (res)
             {
                 return sourceData;
@@ -442,20 +442,18 @@ namespace SDK.yop.utils
             {
                 throw new YopClientException("verifySign fail!");
             }
-
         }
 
         public static string signRsa(string source, string private_Key)
         {
             string signToBase64 = SHA1withRSA.sign(source, private_Key, "UTF-8");
 
-            signToBase64 = HttpUtils.Base64UrlEncode(signToBase64);
+            signToBase64 = Base64SecureURL.Encode(signToBase64);
 
             signToBase64 += "$SHA256";
 
             return signToBase64;
         }
-
 
         private static RSA CreateRsaFromPrivateKey(string privateKey)
         {
@@ -497,7 +495,6 @@ namespace SDK.yop.utils
             return rsa;
         }
 
-
         //编码 
         public static string EncodeBase64(string code_type, string code)
         {
@@ -513,6 +510,7 @@ namespace SDK.yop.utils
             }
             return encode;
         }
+        
         //解码 
         public static string DecodeBase64(string code_type, string code)
         {

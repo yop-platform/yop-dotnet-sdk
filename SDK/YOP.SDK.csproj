@@ -55,7 +55,7 @@
     <Compile Include="yop.utils\RsaAndAes.cs" />
     <Compile Include="yop.utils\SHA1withRSA.cs" />
     <Compile Include="yop.client\YopClient.cs" />
-    <Compile Include="yop.client\YopClient3.cs" />
+    <Compile Include="yop.client\YopRsaClient.cs" />
     <Compile Include="yop.client\YopConfig.cs" />
     <Compile Include="yop.client\YopConstants.cs" />
     <Compile Include="yop.client\YopRequest.cs" />

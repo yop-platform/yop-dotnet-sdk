@@ -23,6 +23,7 @@ namespace SDK.yop.encrypt
             cipher.Init(true, new ParametersWithIV(keyParam, System.Text.Encoding.UTF8.GetBytes(keystr.ToLower().Substring(0, 8))));
             return Convert.ToBase64String(cipher.DoFinal(System.Text.Encoding.UTF8.GetBytes(data)));
         }
+        
         /// <summary>
         /// 解密
         /// </summary>

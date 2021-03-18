@@ -68,26 +68,8 @@ namespace SDK.yop.utils
             return Encoding.UTF8.GetString(AESDecrypt(Convert.FromBase64String(Data), Convert.FromBase64String(Key)));
         }
 
-        public static string Base64UrlSafeEncode(byte[] Data)
-        {
-            return Convert.ToBase64String(Data).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-        }
-
-        public static byte[] Base64UrlSafeDecode(string str)
-        {
-            str = str.Replace('-', '+').Replace('_', '/');
-            int paddings = str.Length % 4;
-            if (paddings > 0)
-            {
-                str += new string('=', 4 - paddings);
-            }
-            return Convert.FromBase64String(str);
-        }
-
-
         public static byte[] RSADecrypt(byte[] data, string privateKeyPem, string signType)
         {
-
             RSACryptoServiceProvider rsaCsp = null;
 
             //字符串获取

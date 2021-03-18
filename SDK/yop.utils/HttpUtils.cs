@@ -97,11 +97,9 @@ namespace SDK.yop.utils
 
                 if (method.ToUpper() == "PUT")
                 {
-
                     string boundary = "---------------------------" + DateTime.Now.Ticks.ToString("x");
                     byte[] boundarybytes = Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
                     byte[] endbytes = Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
-
 
                     request.ContentType = "multipart/form-data; boundary=" + boundary;
                     request.Method = "POST";
@@ -111,11 +109,8 @@ namespace SDK.yop.utils
                     Stream newStream = request.GetRequestStream();
 
                     //1.1 key/value
-
                     Dictionary<string, string> stringDict = new Dictionary<string, string>();
-
                     ArrayList aryParam = new ArrayList(param.Split('&'));
-
                     for (int i = 0; i < aryParam.Count; i++)
                     {
                         string a = (String)aryParam[i];             //遍历，并且赋值给了a
@@ -123,7 +118,6 @@ namespace SDK.yop.utils
                         stringDict.Add(a.Substring(0, n), a.Substring(n + 1));
 
                     }
-
 
                     string formdataTemplate = "Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}";
                     if (stringDict != null)
@@ -137,7 +131,6 @@ namespace SDK.yop.utils
                             newStream.Write(formitembytes, 0, formitembytes.Length);
                         }
                     }
-
 
                     //1.2 file
                     string headerTemplate = "Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: application/octet-stream\r\n\r\n";
@@ -158,12 +151,9 @@ namespace SDK.yop.utils
                         }
                     }
                    
-
                     //1.3 form end
                     newStream.Write(endbytes, 0, endbytes.Length);
-
                     newStream.Close();
-
                 }
 
                 HttpWebResponse response = (HttpWebResponse)request.GetResponse();
@@ -201,15 +191,23 @@ namespace SDK.yop.utils
             return true;
         }
 
-        public static HttpWebResponse PostFile(YopRequest yopRequest, IEnumerable<UploadFile> files)
+        public static HttpWebResponse PostFile(YopRequest yopRequest, IEnumerable<UploadFile> files, Hashtable headers = null)
         {
             string boundary = "----------------------------" + DateTime.Now.Ticks.ToString("x");
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(yopRequest.getAbsoluteURL());
             request.ContentType = "multipart/form-data; boundary=" + boundary;
-            request.Headers.Add("Request-Id", UUIDGenerator.generate());
             request.Method = "POST";
             request.KeepAlive = true;
             request.Credentials = CredentialCache.DefaultCredentials;
+
+            if (headers != null)
+            {
+                foreach (string key in headers.Keys)
+                {
+                    string value = (string)headers[key];
+                    request.Headers.Add(key, value);
+                }
+            }
 
             MemoryStream stream = new MemoryStream();
 
@@ -244,9 +242,7 @@ namespace SDK.yop.utils
                 }
             }
 
-
             request.ContentLength = stream.Length;
-
 
             Stream requestStream = request.GetRequestStream();
 
@@ -258,6 +254,7 @@ namespace SDK.yop.utils
             HttpWebResponse response = (HttpWebResponse)request.GetResponse();
             return response;
         }
+
         /**
         * @param $path
         * @return string
@@ -319,35 +316,6 @@ namespace SDK.yop.utils
             return (sb.ToString());
         }
 
-        public static string Base64UrlEncode(string s)
-        {
-            s = s.Split('=')[0]; // Remove any trailing '='s
-            s = s.Replace('+', '-'); // 62nd char of encoding
-            s = s.Replace('/', '_'); // 63rd char of encoding
-            return s;
-        }
-
-        public static string Base64UrlDecode(string arg)
-        {
-            string s = arg;
-            s = s.Replace('-', '+'); // 62nd char of encoding
-            s = s.Replace('_', '/'); // 63rd char of encoding
-            switch (s.Length % 4) // Pad with trailing '='s
-            {
-                case 0: break; // No pad chars in this case
-                case 2: s += "=="; break; // Two pad chars
-                case 3: s += "="; break; // One pad char
-                default: throw new System.Exception(
-                  "Illegal base64url string!");
-            }
-            return s; // Standard base64 decoder
-        }
-
-
-
-
-
     }
-
 
 }
