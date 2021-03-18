@@ -19,9 +19,10 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace SDK.yop.client
 {
-    public class YopClient3
+    public class YopRsaClient
     {
         protected static Dictionary<string, List<string>> uriTemplateCache = new Dictionary<string, List<string>>();
+
         /// <summary>
         /// 自动补全请求
         /// </summary>
@@ -62,7 +63,6 @@ namespace SDK.yop.client
             else
             {
                 serverUrl = request.getServerRoot() + "/command?" + YopConstants.METHOD + "=" + methodOrUri;
-
             }
             request.setMethod(methodOrUri);
             return serverUrl;
@@ -85,9 +85,7 @@ namespace SDK.yop.client
             if (dynaParamNames == null)
             {
                 dynaParamNames = new List<string>();
-
                 dynaParamNames.Add(RegexUtil.GetResResult("\\{([^\\}]+)\\}", tplUri));
-
                 uriTemplateCache.Add(tplUri, dynaParamNames);
             }
 
@@ -100,6 +98,7 @@ namespace SDK.yop.client
 
             return uri;
         }
+
         /// <summary>
         /// 发起post请求，以YopResponse对象返回
         /// </summary>
@@ -144,7 +143,6 @@ namespace SDK.yop.client
             request.encoding("");
             HttpWebResponse getResponse = HttpUtils.PostAndGetHttpWebResponse(request, "POST", headers);
             return getResponse;
-
         }
 
         public static HttpWebResponse getRsaString(String methodOrUri, YopRequest request)
@@ -200,7 +198,6 @@ namespace SDK.yop.client
                 headersToSignSet.Add("x-yop-customerid");
             }
 
-
             // Formatting the URL with signing protocol.
             string canonicalURI = HttpUtils.getCanonicalURIPath(methodOrUri);
 
@@ -235,15 +232,12 @@ namespace SDK.yop.client
             string canonicalRequest = authString + "\n" + method + "\n" + canonicalURI + "\n" + canonicalQueryString + "\n" + canonicalHeader;
             string private_key = request.getSecretKey();
             string signToBase64 = SHA1withRSA.sign(canonicalRequest, private_key, "UTF-8");
-            signToBase64 = HttpUtils.Base64UrlEncode(signToBase64);
+            signToBase64 = Base64SecureURL.Encode(signToBase64);
             signToBase64 += "$SHA256";
             headers.Add("Authorization", "YOP-RSA2048-SHA256 " + protocolVersion + "/" + appKey + "/" + timestamp + "/" + EXPIRED_SECONDS + "/" + signedHeaders + "/" + signToBase64);
             return headers;
         }
-        private static void signAndEncrypt(String apiUri, YopRequest request)
-        {
 
-        }
         /// <summary>
         /// 上传文件
         /// </summary>
@@ -271,7 +265,6 @@ namespace SDK.yop.client
         public static HttpWebResponse uploadRsaForString(String apiUri, YopRequest request)
         {
             string serverUrl = richRequest(apiUri, request);
-            //signAndEncrypt(request);
             request.setAbsoluteURL(serverUrl);
             //request.encoding("");
             string strTemp = request.getParamValue("_file");
@@ -293,8 +286,8 @@ namespace SDK.yop.client
                 return response;
             response.validSign = isValidResult(response.result.ToString(),sign, request.getYopPublicKey());
             return response;
-
         }
+
         /// <summary>
         /// 对业务结果签名进行校验
         /// </summary>
@@ -302,7 +295,6 @@ namespace SDK.yop.client
         /// <param name="sign"></param>
         /// <returns></returns>
         /// 
-
         public static bool isValidResult(String result, String sign, String publicKey)
         {
             string sb = "";
@@ -318,8 +310,6 @@ namespace SDK.yop.client
             sb = sb.Replace("\r", "").Replace("\n", "").Replace(" ", "");
             return SHA1withRSA.verify(sb, sign, publicKey, "UTF-8");
         }
-
-
 
         private static SortedDictionary<String, String> getHeadersToSign(Hashtable headers, List<string> headersToSign)
         {
@@ -359,7 +349,6 @@ namespace SDK.yop.client
             defaultHeadersToSign.Add("host");
             defaultHeadersToSign.Add("content-length");
             defaultHeadersToSign.Add("content-type");
-            defaultHeadersToSign.Add("content-md5");
 
             return header.StartsWith("x-yop-") || defaultHeadersToSign.Contains(header);
         }
@@ -379,8 +368,6 @@ namespace SDK.yop.client
 
             foreach (string key in headers.Keys)
             {
-
-
                 string value = (string)headers[key];
 
                 if (key == null)
@@ -395,7 +382,6 @@ namespace SDK.yop.client
                 string kv = HttpUtils.normalize(key.Trim().ToLower());
                 value = HttpUtils.normalize(value.Trim());
                 headerStrings.Add(kv + ':' + value);
-
             }
 
             headerStrings.Sort((a, b) => string.CompareOrdinal(a, b));  //20190114 改为Java排序规则
@@ -483,7 +469,6 @@ namespace SDK.yop.client
 			
             arrayList.Sort((a, b) => string.CompareOrdinal(a, b));  //20181102 改为Java排序规则
 
-
             for (int i = 0; i < arrayList.Count; i++)
             {
                 if (StrQuery == "")
@@ -494,14 +479,10 @@ namespace SDK.yop.client
                 {
                     StrQuery += "&";
                 }
-
                 StrQuery += (string)arrayList[i];
             }
 
             return StrQuery;
-
-
         }
-
     }
 }

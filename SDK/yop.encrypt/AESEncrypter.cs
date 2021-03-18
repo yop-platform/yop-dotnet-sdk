@@ -27,8 +27,6 @@ namespace SDK.yop.encrypt
             return Convert.ToBase64String(resultArray, 0, resultArray.Length);
         }
 
-
-
         /// <summary>
         /// AES解密
         /// </summary>
@@ -48,8 +46,6 @@ namespace SDK.yop.encrypt
             ICryptoTransform cTransform = rDel.CreateDecryptor();
             byte[] resultArray = cTransform.TransformFinalBlock(toEncryptArray, 0, toEncryptArray.Length);
             return UTF8Encoding.UTF8.GetString(resultArray, 0, resultArray.Length);
-
-
         }
 
         /// <summary>
@@ -60,7 +56,6 @@ namespace SDK.yop.encrypt
         /// <returns></returns>
         public static string AESDecrypt(string toDecrypt, string key)
         {
-
                 //byte[] keyArray = Convert.FromBase64String(key); //128bit
                 byte[] keyArray = UTF8Encoding.UTF8.GetBytes(key);
                 byte[] toEncryptArray = Convert.FromBase64String(toDecrypt);

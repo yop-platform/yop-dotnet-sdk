@@ -77,10 +77,7 @@ namespace SDK.yop.client
         SIGN_RETURN, TIMESTAMP
     };
 
-        public const string ALG_MD5 = "MD5";
         public const string ALG_AES = "AES";
-        public const string ALG_SHA = "SHA";
-        public const string ALG_SHA1 = "SHA1";
         public const string ALG_SHA256 = "SHA-256";
 
         /// <summary>

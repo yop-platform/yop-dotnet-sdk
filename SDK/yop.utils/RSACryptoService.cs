@@ -32,9 +32,7 @@ namespace SDK.yop.utils
                 throw new Exception("_privateKeyRsaProvider is null");
             }
             //return Encoding.UTF8.GetString(_privateKeyRsaProvider.Decrypt(System.Convert.FromBase64String(cipherText), false));
-
             return Encoding.GetEncoding("UTF-8").GetString(_privateKeyRsaProvider.Decrypt(System.Convert.FromBase64String(cipherText), true));
-
         }
 
         public string Encrypt(string text)

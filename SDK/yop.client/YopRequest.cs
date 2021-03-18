@@ -7,7 +7,6 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Web;
 
-
 namespace SDK.yop.client
 {
     using common;
@@ -21,7 +20,7 @@ namespace SDK.yop.client
 
         private string locale = "zh_CN";
 
-        private string signAlg = YopConstants.ALG_SHA1;
+        private string signAlg = YopConstants.ALG_SHA256;
 
         /// <summary>
         /// 商户编号，易宝商户可不注册开放应用(获取appKey)也可直接调用API
@@ -74,7 +73,6 @@ namespace SDK.yop.client
         /// </summary>
         private string yopPublicKey;
 
-
         /// <summary>
         /// 可支持不同请求使用不同的appKey及secretKey、serverRoot,secretKey只用于本地签名，不会被提交
         /// </summary>
@@ -89,7 +87,6 @@ namespace SDK.yop.client
 
         public YopRequest()
         {
-
             this.appKey = YopConfig.getAppKey();
             this.secretKey = YopConfig.getSecret();
             this.serverRoot = YopConfig.getServerRoot();
@@ -100,6 +97,7 @@ namespace SDK.yop.client
             paramMap.Add(YopConstants.LOCALE, locale);
             paramMap.Add(YopConstants.TIMESTAMP, GetTimeStamp(DateTime.Now));
         }
+        
         /// <summary>  
         /// 将c# DateTime时间格式转换为Unix时间戳格式  
         /// </summary>  
