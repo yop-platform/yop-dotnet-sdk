@@ -256,6 +256,7 @@ namespace SDK.yop.client
             handleRsaResult(request, response, httpWebResponse);
             return response;
         }
+        
         /// <summary>
         /// 发起文件上传请求，以字符串返回
         /// </summary>
@@ -369,7 +370,6 @@ namespace SDK.yop.client
             foreach (string key in headers.Keys)
             {
                 string value = (string)headers[key];
-
                 if (key == null)
                 {
                     continue;
