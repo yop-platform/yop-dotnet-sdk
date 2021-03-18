@@ -29,7 +29,7 @@ namespace RsaTest
             request.addParam("name", "张 文康");
             request.addParam("id_card_number", "370982199101186691");
             System.Diagnostics.Debug.WriteLine(request.toQueryString());
-            YopResponse response = YopClient3.postRsa("/rest/v1.0/test/auth/idcard", request);
+            YopResponse response = YopRsaClient.postRsa("/rest/v1.0/test/auth/idcard", request);
             if(response.validSign){
                 Response.Write("返回结果签名验证成功!");
             }

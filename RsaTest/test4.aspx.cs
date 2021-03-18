@@ -34,7 +34,7 @@ namespace RsaTest
             request.addParam("fileType", "IMAGE");
             //加入文件的全路径
             request.addParam("_file", "D:/1717865189.jpg");
-            YopResponse response = YopClient3.uploadRsa("/rest/v1.0/file/upload", request);
+            YopResponse response = YopRsaClient.uploadRsa("/rest/v1.0/file/upload", request);
             if (response.validSign)
             {
                 Response.Write("返回结果签名验证成功!");

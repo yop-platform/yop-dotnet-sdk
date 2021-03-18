@@ -192,13 +192,6 @@ namespace SDK.yop.client
             Stream stream = HttpUtils.PostAndGetHttpWebResponse(request, "POST", headers).GetResponseStream();
             string content = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
             return content;
-            //string content = getRestTemplate(request).postForObject(serverUrl,
-            //        request.getParams(), string.class);
-            //  if (logger.isDebugEnabled()) {
-            //      logger.debug("response:\n" + content);
-            //  }
-            //  return content;
-            //return null;
         }
 
         public static string uploadForString(string methodOrUri, YopRequest request)
@@ -231,60 +224,14 @@ namespace SDK.yop.client
                 upfiles.Add(files);
             }
 
-            signAndEncrypt(request);
+            Hashtable headers = signAndEncrypt(request);
             request.setAbsoluteURL(serverUrl);
             request.encoding("blowfish");
 
-            Stream stream = HttpUtils.PostFile(request, upfiles).GetResponseStream();
+            Stream stream = HttpUtils.PostFile(request, upfiles, headers).GetResponseStream();
             string content = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
             return content;
-
-
-            //foreach(string uploadFile in uploadFiles)
-            //{
-            //  try
-            //  {
-            //    alternate.Add("fileURI", new UrlResource(new URI(uploadFile)));
-
-            //  }
-            //  catch (Exception e)
-            //  {
-            //    System.Diagnostics.Debug.WriteLine("_file upload error.", e);
-            //  }
-            //}
-
-            //signAndEncrypt(request);
-            //request.setAbsoluteURL(serverUrl);
-            //request.encoding();
-
-            //foreach (string key in original.AllKeys)
-            //{
-            //  //alternate.put(key, new ArrayList<Object>(original.get(key)));
-            //  alternate.Add(key, original.Get(key));
-            //}
-
-            ////string content = getRestTemplate(request).postForObject(serverUrl, alternate, String.class);
-            ////  //if (logger.isDebugEnabled()) {
-            ////  //    logger.debug("response:\n" + content);
-            ////  //}
-            ////  return content;
-            //return null;
         }
-
-        //private static RestTemplate getRestTemplate(YopRequest request)
-        //{
-        //  if (null != request.ConnectTimeout || null != request.ReadTimeout)
-        //  {
-        //    int connectTimeout = null != request.ConnectTimeout ? request.ConnectTimeout.intValue() : YopConfig.ConnectTimeout;
-        //    int readTimeout = null != request.ReadTimeout ? request.ReadTimeout.intValue() : YopConfig.ReadTimeout;
-        //    return new YopRestTemplate(connectTimeout, readTimeout);
-        //  }
-        //  else
-        //  {
-        //    return restTemplate;
-        //  }
-        //}
-
 
         /// <summary>
         /// 简单校验及请求签名
@@ -308,12 +255,10 @@ namespace SDK.yop.client
 
             string timestamp = DateUtils.FormatAlternateIso8601Date(DateTime.Now);
 
-
             //request.addParam(YopConstants.SIGN, signValue);
             headers.Add("x-yop-appkey", appKey);
             headers.Add("x-yop-date", timestamp);
             headers.Add("Authorization", "YOP-HMAC-AES128 "+ signValue);
-
 
             String requestId = Guid.NewGuid().ToString("N");
             request.setYopRequestId(requestId);
@@ -321,7 +266,6 @@ namespace SDK.yop.client
             headers.Add("x-yop-sdk-langs", YopConfig.getSdkLangs());
             headers.Add("x-yop-sdk-version", YopConfig.getSdkVersion());
             headers.Add("x-yop-request-id", requestId);
-
 
             if (request.IsRest())
             {
@@ -494,9 +438,7 @@ namespace SDK.yop.client
             if (dynaParamNames == null)
             {
                 dynaParamNames = new List<string>();
-
                 dynaParamNames.Add(RegexUtil.GetResResult("\\{([^\\}]+)\\}", tplUri));
-
                 uriTemplateCache.Add(tplUri, dynaParamNames);
             }
 

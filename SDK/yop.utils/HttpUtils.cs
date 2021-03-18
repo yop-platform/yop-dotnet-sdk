@@ -7,12 +7,43 @@ using System.Collections.Specialized;
 using System.Collections;
 using System.Web;
 using System.Linq;
+using SDK.yop.client;
+
 namespace SDK.yop.utils
 {
     using client;
 
     public class HttpUtils
     {
+
+        /// <summary>
+        /// The Set of accepted and valid Url characters per RFC3986.
+        /// Characters outside of this set will be encoded.
+        /// </summary>
+        public const string ValidUrlCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.~";
+
+        /// <summary>
+        /// The set of accepted and valid Url path characters per RFC3986.
+        /// </summary>
+        private static string ValidPathCharacters = DetermineValidPathCharacters();
+
+        // Checks which path characters should not be encoded
+        // This set will be different for .NET 4 and .NET 4.5, as
+        // per http://msdn.microsoft.com/en-us/library/hh367887%28v=vs.110%29.aspx
+        private static string DetermineValidPathCharacters()
+        {
+            const string basePathCharacters = "/:'()!*[]$";
+
+            var sb = new StringBuilder();
+            foreach (var c in basePathCharacters)
+            {
+                var escaped = Uri.EscapeUriString(c.ToString());
+                if (escaped.Length == 1 && escaped[0] == c)
+                    sb.Append(c);
+            }
+            return sb.ToString();
+        }
+
         public static HttpWebResponse PostAndGetHttpWebResponse(YopRequest yopRequest, string method, Hashtable headers = null)//(string targetUrl, string param, string method, int timeOut)
         {
             try
@@ -46,7 +77,7 @@ namespace SDK.yop.utils
                 request.Accept = "*/*";
                 //request.Accept = "image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/x-shockwave-flash, application/vnd.ms-excel, application/vnd.ms-powerpoint, application/msword, application/x-ms-application, application/x-ms-xbap, application/vnd.ms-xpsdocument, application/xaml+xml, */*";
                 request.ContentType = "application/x-www-form-urlencoded";
-                request.UserAgent = ".NET/3.2.19";
+                request.UserAgent = ".NET/" + YopConfig.getSdkVersion();
                 //request.Referer = refererUrl;
                 request.CookieContainer = cc;
                 request.ServicePoint.Expect100Continue = false;
@@ -66,11 +97,9 @@ namespace SDK.yop.utils
 
                 if (method.ToUpper() == "PUT")
                 {
-
                     string boundary = "---------------------------" + DateTime.Now.Ticks.ToString("x");
                     byte[] boundarybytes = Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
                     byte[] endbytes = Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
-
 
                     request.ContentType = "multipart/form-data; boundary=" + boundary;
                     request.Method = "POST";
@@ -80,11 +109,8 @@ namespace SDK.yop.utils
                     Stream newStream = request.GetRequestStream();
 
                     //1.1 key/value
-
                     Dictionary<string, string> stringDict = new Dictionary<string, string>();
-
                     ArrayList aryParam = new ArrayList(param.Split('&'));
-
                     for (int i = 0; i < aryParam.Count; i++)
                     {
                         string a = (String)aryParam[i];             //遍历，并且赋值给了a
@@ -92,7 +118,6 @@ namespace SDK.yop.utils
                         stringDict.Add(a.Substring(0, n), a.Substring(n + 1));
 
                     }
-
 
                     string formdataTemplate = "Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}";
                     if (stringDict != null)
@@ -106,7 +131,6 @@ namespace SDK.yop.utils
                             newStream.Write(formitembytes, 0, formitembytes.Length);
                         }
                     }
-
 
                     //1.2 file
                     string headerTemplate = "Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: application/octet-stream\r\n\r\n";
@@ -127,12 +151,9 @@ namespace SDK.yop.utils
                         }
                     }
                    
-
                     //1.3 form end
                     newStream.Write(endbytes, 0, endbytes.Length);
-
                     newStream.Close();
-
                 }
 
                 HttpWebResponse response = (HttpWebResponse)request.GetResponse();
@@ -170,15 +191,23 @@ namespace SDK.yop.utils
             return true;
         }
 
-        public static HttpWebResponse PostFile(YopRequest yopRequest, IEnumerable<UploadFile> files)
+        public static HttpWebResponse PostFile(YopRequest yopRequest, IEnumerable<UploadFile> files, Hashtable headers = null)
         {
             string boundary = "----------------------------" + DateTime.Now.Ticks.ToString("x");
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(yopRequest.getAbsoluteURL());
             request.ContentType = "multipart/form-data; boundary=" + boundary;
-            request.Headers.Add("Request-Id", UUIDGenerator.generate());
             request.Method = "POST";
             request.KeepAlive = true;
             request.Credentials = CredentialCache.DefaultCredentials;
+
+            if (headers != null)
+            {
+                foreach (string key in headers.Keys)
+                {
+                    string value = (string)headers[key];
+                    request.Headers.Add(key, value);
+                }
+            }
 
             MemoryStream stream = new MemoryStream();
 
@@ -213,9 +242,7 @@ namespace SDK.yop.utils
                 }
             }
 
-
             request.ContentLength = stream.Length;
-
 
             Stream requestStream = request.GetRequestStream();
 
@@ -227,6 +254,7 @@ namespace SDK.yop.utils
             HttpWebResponse response = (HttpWebResponse)request.GetResponse();
             return response;
         }
+
         /**
         * @param $path
         * @return string
@@ -249,7 +277,21 @@ namespace SDK.yop.utils
 
         public static string normalizePath(string path)
         {
-            return normalize(path).Replace("%2F", "/");
+            StringBuilder sb = new StringBuilder();
+            string unreservedChars = String.Concat(ValidUrlCharacters, ValidPathCharacters));
+            foreach (char symbol in System.Text.Encoding.UTF8.GetBytes(value))
+            {
+                if (unreservedChars.IndexOf(symbol) != -1 )
+                {
+                    sb.Append(symbol);
+                }
+                else
+                {
+                    sb.Append(@"%" + Convert.ToString(symbol, 16));
+                }
+            }
+
+            return (sb.ToString());
         }
 
         /**
@@ -258,87 +300,22 @@ namespace SDK.yop.utils
         */
         public static string normalize(string value)
         {
-
-            return UrlEncode(value, System.Text.Encoding.GetEncoding("UTF-8"), true);
-
-        }
-
-
-        /// <summary>
-        /// UrlEncode重写：小写转大写，特殊字符特换
-        /// </summary>
-        /// <param name="strSrc">原字符串</param>
-        /// <param name="encoding">编码方式</param>
-        /// <param name="bToUpper">是否转大写</param>
-        /// <returns></returns>
-        public static string UrlEncode(string strSrc, System.Text.Encoding encoding, bool bToUpper)
-        {
-            System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
-            for (int i = 0; i < strSrc.Length; i++)
+            StringBuilder sb = new StringBuilder();
+            foreach (char symbol in System.Text.Encoding.UTF8.GetBytes(value))
             {
-                string t = strSrc[i].ToString();
-                //string k = HttpUtility.UrlEncode(t, encoding);
-                string k = Uri.EscapeDataString(t);
-                if (t == k)
+                if (ValidUrlCharacters.IndexOf(symbol) != -1 )
                 {
-                    stringBuilder.Append(t);
+                    sb.Append(symbol);
                 }
                 else
                 {
-                    if (bToUpper)
-                        stringBuilder.Append(k.ToUpper());
-                    else
-                        stringBuilder.Append(k);
+                    sb.Append(@"%" + Convert.ToString(symbol, 16));
                 }
-            }
-            if (bToUpper)
-                return stringBuilder.ToString().Replace("+", "%2B");
-                //return stringBuilder.ToString().Replace("+", "%20");
-            else
-                return stringBuilder.ToString();
-        }
-
-        public static string UrlEncode(string str)
-        {
-            StringBuilder sb = new StringBuilder();
-            byte[] byStr = System.Text.Encoding.UTF8.GetBytes(str); //默认是System.Text.Encoding.Default.GetBytes(str)
-            for (int i = 0; i < byStr.Length; i++)
-            {
-                sb.Append(@"%" + Convert.ToString(byStr[i], 16));
             }
 
             return (sb.ToString());
         }
 
-        public static string Base64UrlEncode(string s)
-        {
-            s = s.Split('=')[0]; // Remove any trailing '='s
-            s = s.Replace('+', '-'); // 62nd char of encoding
-            s = s.Replace('/', '_'); // 63rd char of encoding
-            return s;
-        }
-
-        public static string Base64UrlDecode(string arg)
-        {
-            string s = arg;
-            s = s.Replace('-', '+'); // 62nd char of encoding
-            s = s.Replace('_', '/'); // 63rd char of encoding
-            switch (s.Length % 4) // Pad with trailing '='s
-            {
-                case 0: break; // No pad chars in this case
-                case 2: s += "=="; break; // Two pad chars
-                case 3: s += "="; break; // One pad char
-                default: throw new System.Exception(
-                  "Illegal base64url string!");
-            }
-            return s; // Standard base64 decoder
-        }
-
-
-
-
-
     }
-
 
 }
