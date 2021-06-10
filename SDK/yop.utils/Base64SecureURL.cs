@@ -27,20 +27,15 @@ namespace SDK.yop.utils
         /// </summary>
         /// <param name="secureUrlBase64">Base64编码字符串安全的URL.</param>
         /// <returns>Cadena de texto decodificada.</returns>
-        public static string Decode(string secureUrlBase64)
+        public static byte[] Decode(string secureUrlBase64)
         {
-            secureUrlBase64 = secureUrlBase64.Replace('-', '+').Replace('_', '/');
-            switch (secureUrlBase64.Length % 4)
+             secureUrlBase64 = secureUrlBase64.Replace('-', '+').Replace('_', '/');
+            int paddings = secureUrlBase64.Length % 4;
+            if (paddings > 0)
             {
-                case 2:
-                    secureUrlBase64 += "==";
-                    break;
-                case 3:
-                    secureUrlBase64 += "=";
-                    break;
+                secureUrlBase64 += new string('=', 4 - paddings);
             }
-            var bytes = Convert.FromBase64String(secureUrlBase64);
-            return Encoding.UTF8.GetString(bytes);
+            return Convert.FromBase64String(secureUrlBase64);
         }
     }
 }

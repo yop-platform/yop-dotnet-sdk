@@ -433,7 +433,7 @@ namespace SDK.yop.utils
             string signToBase64 = encryptedData.Substring(index + 1);
             string sourceData = encryptedData.Substring(0, index);
 
-            bool res = SHA1withRSA.verify(sourceData, Base64SecureURL.Decode(signToBase64), public_Key, "UTF-8", digestAlg);
+            bool res = SHA1withRSA.verify(sourceData, Convert.ToBase64String(Base64SecureURL.Decode(signToBase64)), public_Key, "UTF-8", digestAlg);
             if (res)
             {
                 return sourceData;

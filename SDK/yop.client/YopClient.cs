@@ -410,7 +410,7 @@ namespace SDK.yop.client
                 string version = Regex.Match(methodOrUri, "(?<=/rest/v).*?(?=/)").Value;
                 if (StringUtils.isNotBlank(version))
                 {
-                    request.setVersion(version);
+                   // request.setVersion(version);
                 }
             }
             else
