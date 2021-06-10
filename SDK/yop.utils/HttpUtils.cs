@@ -259,7 +259,7 @@ namespace SDK.yop.utils
         * @param $path
         * @return string
         */
-        public static string getCanonicalURIPath(string path)
+         public static string getCanonicalURIPath(string path)
         {
             if (path == null)
             {
@@ -277,44 +277,54 @@ namespace SDK.yop.utils
 
         public static string normalizePath(string path)
         {
-            StringBuilder sb = new StringBuilder();
-            string unreservedChars = String.Concat(ValidUrlCharacters, ValidPathCharacters));
-            foreach (char symbol in System.Text.Encoding.UTF8.GetBytes(value))
-            {
-                if (unreservedChars.IndexOf(symbol) != -1 )
-                {
-                    sb.Append(symbol);
-                }
-                else
-                {
-                    sb.Append(@"%" + Convert.ToString(symbol, 16));
-                }
-            }
-
-            return (sb.ToString());
+            return normalize(path).Replace("%2F", "/");
         }
 
         /**
-        * @param $value
-        * @return string
+        * @param $value        * @return string
         */
         public static string normalize(string value)
         {
-            StringBuilder sb = new StringBuilder();
-            foreach (char symbol in System.Text.Encoding.UTF8.GetBytes(value))
+
+            return UrlEncode(value, System.Text.Encoding.GetEncoding("UTF-8"), true);
+
+        }
+
+
+        /// <summary>
+        /// UrlEncode重写：小写转大写，特殊字符特换
+        /// </summary>
+        /// <param name="strSrc">原字符串</param>
+        /// <param name="encoding">编码方式</param>
+        /// <param name="bToUpper">是否转大写</param>
+        /// <returns></returns>
+        public static string UrlEncode(string strSrc, System.Text.Encoding encoding, bool bToUpper)
+        {
+            System.Text.StringBuilder stringBuilder = new System.Text.StringBuilder();
+            for (int i = 0; i < strSrc.Length; i++)
             {
-                if (ValidUrlCharacters.IndexOf(symbol) != -1 )
+                string t = strSrc[i].ToString();
+                //string k = HttpUtility.UrlEncode(t, encoding);
+                string k = Uri.EscapeDataString(t);
+                if (t == k)
                 {
-                    sb.Append(symbol);
+                    stringBuilder.Append(t);
                 }
                 else
                 {
-                    sb.Append(@"%" + Convert.ToString(symbol, 16));
+                    if (bToUpper)
+                        stringBuilder.Append(k.ToUpper());
+                    else
+                        stringBuilder.Append(k);
                 }
             }
-
-            return (sb.ToString());
+            if (bToUpper)
+                return stringBuilder.ToString().Replace("+", "%2B");
+                //return stringBuilder.ToString().Replace("+", "%20");
+            else
+                return stringBuilder.ToString();
         }
+
 
     }
 

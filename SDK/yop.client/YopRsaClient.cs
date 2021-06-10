@@ -44,10 +44,6 @@ namespace SDK.yop.client
                 methodOrUri = mergeTplUri(methodOrUri, request);
                 serverUrl = request.getServerRoot() + methodOrUri;
                 string version = Regex.Match(methodOrUri, "(?<=/rest/v).*?(?=/)").Value;
-                if (StringUtils.isNotBlank(version))
-                {
-                    request.setVersion(version);
-                }
             }
             else if (methodOrUri.StartsWith("/yos/"))
             {
@@ -55,10 +51,6 @@ namespace SDK.yop.client
                 methodOrUri = mergeTplUri(methodOrUri, request);
                 serverUrl = request.getServerRoot() + methodOrUri;
                 string version = Regex.Match(methodOrUri, "(?<=/yos/v).*?(?=/)").Value;
-                if (StringUtils.isNotBlank(version))
-                {
-                    request.setVersion(version);
-                }
             }
             else
             {
@@ -232,7 +224,7 @@ namespace SDK.yop.client
             string canonicalRequest = authString + "\n" + method + "\n" + canonicalURI + "\n" + canonicalQueryString + "\n" + canonicalHeader;
             string private_key = request.getSecretKey();
             string signToBase64 = SHA1withRSA.sign(canonicalRequest, private_key, "UTF-8");
-            signToBase64 = Base64SecureURL.Encode(signToBase64);
+            signToBase64 = signToBase64.Replace('+', '-').Replace('/', '_').TrimEnd('=');
             signToBase64 += "$SHA256";
             headers.Add("Authorization", "YOP-RSA2048-SHA256 " + protocolVersion + "/" + appKey + "/" + timestamp + "/" + EXPIRED_SECONDS + "/" + signedHeaders + "/" + signToBase64);
             return headers;
