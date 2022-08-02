@@ -12,6 +12,7 @@ using SDK.yop.client;
 namespace SDK.yop.utils
 {
     using client;
+    using SDK.common;
 
     public class HttpUtils
     {
@@ -88,6 +89,11 @@ namespace SDK.yop.utils
 
                 if (method.ToUpper() == "POST")
                 {
+                    if (StringUtils.hasText(yopRequest.getContent()))
+                    {
+                        data = Encoding.UTF8.GetBytes(yopRequest.getContent());
+                        request.ContentType = "application/json";
+                    }
                     request.ContentLength = method.ToUpper().Trim() == "POST" ? data.Length : 0;
 
                     Stream newStream = request.GetRequestStream();
