@@ -407,7 +407,6 @@ namespace SDK.yop.client
             {
                 methodOrUri = mergeTplUri(methodOrUri, request);
                 serverUrl += methodOrUri;
-                string version = Regex.Match(methodOrUri, "(?<=/rest/v).*?(?=/)").Value;
             }
             else
             {
