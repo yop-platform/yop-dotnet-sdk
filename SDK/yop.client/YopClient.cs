@@ -407,14 +407,6 @@ namespace SDK.yop.client
             {
                 methodOrUri = mergeTplUri(methodOrUri, request);
                 serverUrl += methodOrUri;
-                if (StringUtils.isNotBlank(version))
-                {
-                   // request.setVersion(version);
-                }
-                if (StringUtils.isNotBlank(version))
-                {
-                   // request.setVersion(version);
-                }
             }
             else
             {
