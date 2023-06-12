@@ -30,6 +30,8 @@ namespace SDK.yop.client
         //private Dictionary<string, string> paramMap = new Dictionary<string, string>();
         private NameValueCollection paramMap = new NameValueCollection();
 
+        private string content;
+
         private List<string> ignoreSignParams = new List<string>() { YopConstants.SIGN };//Arrays.asList(YopConstants.SIGN);
 
         /// <summary>
@@ -151,6 +153,17 @@ namespace SDK.yop.client
         {
             this.serverRoot = serverRoot;
             this.yopPublicKey = yopPublicKey;
+        }
+
+        public YopRequest setContent(string content)
+        {
+            this.content = content;
+            return this;
+        }
+
+        public string getContent()
+        {
+            return this.content;
         }
 
         public YopRequest addParam(string paramName, object paramValue)

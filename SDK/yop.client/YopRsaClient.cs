@@ -194,7 +194,7 @@ namespace SDK.yop.client
             string canonicalURI = HttpUtils.getCanonicalURIPath(methodOrUri);
 
             // Formatting the query string with signing protocol.
-            string canonicalQueryString = getCanonicalQueryString(request, true);
+            string canonicalQueryString = StringUtils.hasText(request.getContent()) ? "" : getCanonicalQueryString(request, true);
 
             //Sorted the headers should be signed from the request.
             SortedDictionary<String, String> headersToSign = getHeadersToSign(headers, headersToSignSet);
