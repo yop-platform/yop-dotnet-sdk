@@ -325,10 +325,10 @@ namespace SDK.yop.utils
                 }
             }
             if (bToUpper)
-                return stringBuilder.ToString().Replace("+", "%2B");
-                //return stringBuilder.ToString().Replace("+", "%20");
+                return stringBuilder.ToString().Replace("+", "%2B").Replace("(", "%28").Replace(")", "%29");
+            //return stringBuilder.ToString().Replace("+", "%20");
             else
-                return stringBuilder.ToString();
+                return stringBuilder.ToString().Replace("(", "%28").Replace(")", "%29");
         }
 
 
