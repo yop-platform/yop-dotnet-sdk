@@ -5,6 +5,10 @@ using System.IO;
 using System.Security.Cryptography;
 using SDK.yop.exception;
 using SDK.yop.encrypt;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Crypto.Signers;
+using Org.BouncyCastle.Crypto.Digests;
 
 namespace SDK.yop.utils
 {
@@ -17,16 +21,15 @@ namespace SDK.yop.utils
         /// <param name="privateKey">私钥</param>
         /// <param name="input_charset">编码格式</param>
         /// <returns>签名后字符串</returns>
-        public static string sign(string content, string privateKey, string input_charset)
+        public static string sign(string content, string privateKeyString, string input_charset)
         {
-            byte[] Data = Encoding.GetEncoding(input_charset).GetBytes(content);
-            RSACryptoServiceProvider rsa = DecodePemPrivateKey(privateKey);
-            using (var sh = SHA256.Create())
-            //using (var sh = SHA512.Create())
-            {
-                byte[] signData = rsa.SignData(Data, sh);
-                return Convert.ToBase64String(signData);
-            }
+            AsymmetricKeyParameter privateKey = PrivateKeyFactory.CreateKey(Convert.FromBase64String(privateKeyString));
+            ISigner signer = new RsaDigestSigner(new Sha256Digest());
+            signer.Init(true, privateKey);
+            byte[] data = Encoding.UTF8.GetBytes(content);
+            signer.BlockUpdate(data, 0, data.Length);
+            byte[] signature = signer.GenerateSignature();
+            return Convert.ToBase64String(signature);
         }
         
         //HMAC SHA256
