@@ -4,7 +4,9 @@ using System.Text;
 using System.Security.Cryptography;
 using System.IO;
 using SDK.yop.exception;
-
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Security;
+using Org.BouncyCastle.Crypto.Parameters;
 
 namespace SDK.yop.utils
 {
@@ -70,34 +72,14 @@ namespace SDK.yop.utils
 
         public static byte[] RSADecrypt(byte[] data, string privateKeyPem, string signType)
         {
-            RSACryptoServiceProvider rsaCsp = null;
+            AsymmetricKeyParameter privateKey = PrivateKeyFactory.CreateKey(Convert.FromBase64String(privateKeyPem));
+            RsaKeyParameters privateKeyParams = (RsaKeyParameters)privateKey;
+            IBufferedCipher cipher = CipherUtilities.GetCipher("RSA/ECB/PKCS1Padding");
+            cipher.Init(false, privateKeyParams);
+            return cipher.DoFinal(data);
 
-            //字符串获取
-            rsaCsp = LoadCertificateString(privateKeyPem, signType);
-            int maxBlockSize = rsaCsp.KeySize / 8; //解密块最大长度限制
-            if (data.Length <= maxBlockSize)
-            {
-                byte[] cipherbytes = rsaCsp.Decrypt(data, false);
-                return cipherbytes;
-            }
-            MemoryStream crypStream = new MemoryStream(data);
-            MemoryStream plaiStream = new MemoryStream();
-            Byte[] buffer = new Byte[maxBlockSize];
-            int blockSize = crypStream.Read(buffer, 0, maxBlockSize);
-            while (blockSize > 0)
-            {
-                Byte[] toDecrypt = new Byte[blockSize];
-                Array.Copy(buffer, 0, toDecrypt, 0, blockSize);
-                Byte[] cryptograph = rsaCsp.Decrypt(toDecrypt, false);
-                plaiStream.Write(cryptograph, 0, cryptograph.Length);
-                blockSize = crypStream.Read(buffer, 0, maxBlockSize);
-            }
-
-            return plaiStream.ToArray();
         }
 
-
-  
         public static RSACryptoServiceProvider LoadCertificateString(string strKey, string signType)
         {
             byte[] data = null;
