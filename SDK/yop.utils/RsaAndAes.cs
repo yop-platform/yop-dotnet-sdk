@@ -1,9 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Security.Cryptography;
 using System.IO;
-using SDK.yop.exception;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Crypto.Parameters;
@@ -51,14 +50,26 @@ namespace SDK.yop.utils
             CryptoStream cryptoStream = new CryptoStream(mStream, aes.CreateDecryptor(), CryptoStreamMode.Read);
             try
             {
-                byte[] tmp = new byte[Data.Length + 32];
-                int len = cryptoStream.Read(tmp, 0, Data.Length + 32);
-                byte[] ret = new byte[len];
-                Array.Copy(tmp, 0, ret, 0, len);
-                return ret;
+                // 创建一个临时缓冲区来存放解密数据
+                List<byte> tempList = new List<byte>();
+                byte[] buffer = new byte[1024]; // 这里的缓冲区大小可以根据需要调整
+                int bytesRead;
+
+                // 循环读取数据，直到没有更多
+                while ((bytesRead = cryptoStream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    for (int i = 0; i < bytesRead; i++)
+                    {
+                        tempList.Add(buffer[i]);
+                    }
+                }
+
+                // 将List<byte>转换为byte[]
+                return tempList.ToArray();
             }
             finally
             {
+                // 确保资源被正确释放
                 cryptoStream.Close();
                 mStream.Close();
                 aes.Clear();
