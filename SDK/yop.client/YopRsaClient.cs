@@ -33,28 +33,47 @@ namespace SDK.yop.client
         protected static string richRequest(string methodOrUri, YopRequest request)
         {
             Assert.notNull(methodOrUri, "method name or rest uri");
-            if (methodOrUri.StartsWith(request.getServerRoot()))
-            {
-                methodOrUri = methodOrUri.Substring(request.getServerRoot().Length + 1);
-            }
+            string serverRoot = request.getServerRoot();
 
             String serverUrl;
             if (methodOrUri.StartsWith("/rest/"))
             {
+                if (StringUtils.isBlank(serverRoot))
+                {
+                    serverRoot = YopConfig.getServerRoot();
+                }
+                if (methodOrUri.StartsWith(serverRoot))
+                {
+                    methodOrUri = methodOrUri.Substring(serverRoot.Length + 1);
+                }
+                request.setServerRoot(serverRoot);
                 methodOrUri = mergeTplUri(methodOrUri, request);
-                serverUrl = request.getServerRoot() + methodOrUri;
+                serverUrl = serverRoot + methodOrUri;
                 string version = Regex.Match(methodOrUri, "(?<=/rest/v).*?(?=/)").Value;
             }
             else if (methodOrUri.StartsWith("/yos/"))
             {
-                request.setServerRoot(YopConfig.getYosServerRoot());
+                if (StringUtils.isBlank(serverRoot))
+                {
+                    serverRoot = YopConfig.getYosServerRoot();
+                }
+                if (methodOrUri.StartsWith(serverRoot))
+                {
+                    methodOrUri = methodOrUri.Substring(serverRoot.Length + 1);
+                }
+                request.setServerRoot(serverRoot);
                 methodOrUri = mergeTplUri(methodOrUri, request);
-                serverUrl = request.getServerRoot() + methodOrUri;
+                serverUrl = serverRoot + methodOrUri;
                 string version = Regex.Match(methodOrUri, "(?<=/yos/v).*?(?=/)").Value;
             }
             else
             {
-                serverUrl = request.getServerRoot() + "/command?" + YopConstants.METHOD + "=" + methodOrUri;
+                if (StringUtils.isBlank(serverRoot))
+                {
+                    serverRoot = YopConfig.getServerRoot();
+                }
+                request.setServerRoot(serverRoot);
+                serverUrl = serverRoot + "/command?" + YopConstants.METHOD + "=" + methodOrUri;
             }
             request.setMethod(methodOrUri);
             return serverUrl;
@@ -97,7 +116,7 @@ namespace SDK.yop.client
         /// <param name="apiUri">目标地址或命名模式的method</param>
         /// <param name="request">客户端请求对象</param>
         /// <returns>响应对象</returns>
-        public static YopResponse postRsa(String methodOrUri, YopRequest request)
+        public static YopResponse post(String methodOrUri, YopRequest request)
         {
             HttpWebResponse getResponse = postRsaString(methodOrUri, request);
             Stream stream = getResponse.GetResponseStream();
@@ -108,7 +127,12 @@ namespace SDK.yop.client
             return response;
         }
 
-        public static YopResponse getRsa(String methodOrUri, YopRequest request)
+        public static YopResponse postRsa(String methodOrUri, YopRequest request)
+        {
+            return post(methodOrUri, request);
+        }
+
+        public static YopResponse get(String methodOrUri, YopRequest request)
         {
             HttpWebResponse getResponse = getRsaString(methodOrUri, request);
             Stream stream = getResponse.GetResponseStream();
@@ -118,6 +142,11 @@ namespace SDK.yop.client
             response.result = content;
             response = handleRsaResult(request, response, getResponse);
             return response;
+        }
+
+        public static YopResponse getRsa(String methodOrUri, YopRequest request)
+        {
+            return get(methodOrUri, request);
         }
 
         /// <summary>
@@ -236,7 +265,7 @@ namespace SDK.yop.client
         /// <param name="apiUri">目标地址或命名模式的method</param>
         /// <param name="request">客户端请求对象</param>
         /// <returns>响应对象</returns>
-        public static YopResponse uploadRsa(String apiUri, YopRequest request)
+        public static YopResponse upload(String apiUri, YopRequest request)
         {
             HttpWebResponse httpWebResponse = uploadRsaForString(apiUri, request);
             Stream stream = httpWebResponse.GetResponseStream();
@@ -247,6 +276,11 @@ namespace SDK.yop.client
             
             handleRsaResult(request, response, httpWebResponse);
             return response;
+        }
+
+        public static YopResponse uploadRsa(String apiUri, YopRequest request)
+        {
+            return upload(apiUri, request);
         }
         
         /// <summary>

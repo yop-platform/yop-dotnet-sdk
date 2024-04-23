@@ -143,20 +143,40 @@ namespace SDK.yop.utils
                     byte[] buffer = new byte[4096];
                     int bytesRead = 0;
 
-                    string filePath = yopRequest.getParamValue("_file"); 
-
-                    newStream.Write(boundarybytes, 0, boundarybytes.Length);
-                    string header = string.Format(headerTemplate, "_file", Path.GetFileName(filePath));
-                    byte[] headerbytes = Encoding.UTF8.GetBytes(header);
-                    newStream.Write(headerbytes, 0, headerbytes.Length);
-                    using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
-                    {
-                    while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
+                    //兼容旧逻辑，暂时保留_file
+                    string filePath = yopRequest.getParamValue("_file");
+                    if (filePath != null && !StringUtils.isBlank(filePath)) {
+                        newStream.Write(boundarybytes, 0, boundarybytes.Length);
+                        string header = string.Format(headerTemplate, "_file", Path.GetFileName(filePath));
+                        byte[] headerbytes = Encoding.UTF8.GetBytes(header);
+                        newStream.Write(headerbytes, 0, headerbytes.Length);
+                        using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
                         {
-                            newStream.Write(buffer, 0, bytesRead);
+                        while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
+                            {
+                                newStream.Write(buffer, 0, bytesRead);
+                            }
                         }
                     }
-                   
+
+                    //处理文件参数
+                    Dictionary<string, string> files = yopRequest.getFiles();
+                    foreach (string key in files.Keys)
+                    {
+                        string value = files[key];
+                        newStream.Write(boundarybytes, 0, boundarybytes.Length);
+                        string header = string.Format(headerTemplate, key, Path.GetFileName(value));
+                        byte[] headerbytes = Encoding.UTF8.GetBytes(header);
+                        newStream.Write(headerbytes, 0, headerbytes.Length);
+                        using (FileStream fileStream = new FileStream(value, FileMode.Open, FileAccess.Read))
+                        {
+                        while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
+                            {
+                                newStream.Write(buffer, 0, bytesRead);
+                            }
+                        }
+                    }
+
                     //1.3 form end
                     newStream.Write(endbytes, 0, endbytes.Length);
                     newStream.Close();
@@ -176,13 +196,13 @@ namespace SDK.yop.utils
         /// <summary>
         /// 解决证书问题 不管证书有效否，直接返回有效
         /// </summary>
-        internal class AcceptAllCertificatePolicy : ICertificatePolicy
-        {
-            public bool CheckValidationResult(ServicePoint sPoint, System.Security.Cryptography.X509Certificates.X509Certificate cert, WebRequest wRequest, int certProb)
-            {
-                return true;
-            }
-        }
+        // internal class AcceptAllCertificatePolicy : ICertificatePolicy
+        // {
+        //     public bool CheckValidationResult(ServicePoint sPoint, System.Security.Cryptography.X509Certificates.X509Certificate cert, WebRequest wRequest, int certProb)
+        //     {
+        //         return true;
+        //     }
+        // }
 
         /// <summary>
         /// 解决证书问题 不管证书有效否，直接返回有效
