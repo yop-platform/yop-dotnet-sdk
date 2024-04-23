@@ -30,6 +30,8 @@ namespace SDK.yop.client
         //private Dictionary<string, string> paramMap = new Dictionary<string, string>();
         private NameValueCollection paramMap = new NameValueCollection();
 
+        private Dictionary<string, string> fileParamMap = new Dictionary<string, string>();
+
         private string content;
 
         private List<string> ignoreSignParams = new List<string>() { YopConstants.SIGN };//Arrays.asList(YopConstants.SIGN);
@@ -91,7 +93,6 @@ namespace SDK.yop.client
         {
             this.appKey = YopConfig.getAppKey();
             this.secretKey = YopConfig.getSecret();
-            this.serverRoot = YopConfig.getServerRoot();
             if (YopConfig.getAppKey() != null)
                 paramMap.Add(YopConstants.APP_KEY, YopConfig.getAppKey());
             //paramMap.Add(YopConstants.FORMAT, format.ToString());
@@ -99,7 +100,7 @@ namespace SDK.yop.client
             paramMap.Add(YopConstants.LOCALE, locale);
             paramMap.Add(YopConstants.TIMESTAMP, GetTimeStamp(DateTime.Now));
         }
-        
+
         /// <summary>  
         /// 将c# DateTime时间格式转换为Unix时间戳格式  
         /// </summary>  
@@ -135,13 +136,13 @@ namespace SDK.yop.client
             if (appKey != null)
                 paramMap.Set(YopConstants.APP_KEY, appKey);
         }
-		
+
         public YopRequest(string appKey, string secretKey, string yopPublicKey)
             : this(appKey, secretKey)
         {
             this.yopPublicKey = yopPublicKey;
         }
-		
+
         /// <summary>
         /// 同一个工程内部可支持多个开放应用发起调用，且支持调不同的服务器
         /// </summary>
@@ -230,6 +231,26 @@ namespace SDK.yop.client
             return this;
         }
 
+        public YopRequest addFile(string paramName, string paramValue)
+        {
+            Assert.hasText(paramName, "参数名不能为空");
+            if (paramValue == null || StringUtils.isBlank((string)paramValue))
+            {
+                return this;
+            }
+            if (YopConstants.isProtectedKey(paramName))
+            {
+                return this;
+            }
+            if (fileParamMap.ContainsKey(paramName))
+            {
+                fileParamMap[paramName] = paramValue.Trim();
+                return this;
+            }
+            fileParamMap.Add(paramName, paramValue.Trim());
+            return this;
+        }
+
 
         public List<string> getParam(string key)
         {
@@ -241,6 +262,11 @@ namespace SDK.yop.client
             }
             return list;
             //return paramMap.get(key);
+        }
+
+        public string getFile(string key)
+        {
+            return fileParamMap[key];
         }
 
         public string getParamValue(string key)
@@ -259,6 +285,11 @@ namespace SDK.yop.client
         public NameValueCollection getParams()
         {
             return paramMap;
+        }
+
+        public Dictionary<string, string> getFiles()
+        {
+            return fileParamMap;
         }
 
         public List<string> getIgnoreSignParams()
@@ -394,13 +425,9 @@ namespace SDK.yop.client
 
         public string getServerRoot()
         {
-            if (StringUtils.isBlank(serverRoot))
-            {
-                serverRoot = YopConfig.getServerRoot();
-            }
             return serverRoot;
         }
-		
+
         public string getYopRequestId()
         {
             return this.yopRequestId;
@@ -410,7 +437,7 @@ namespace SDK.yop.client
         {
             this.yopRequestId = yopRequestId;
         }
-		
+
         public void encoding(string enType)
         {
             try

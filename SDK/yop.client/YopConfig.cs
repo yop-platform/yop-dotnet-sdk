@@ -10,7 +10,7 @@ namespace SDK.yop.client
 
         private static string yosServerRoot = "https://yos.yeepay.com/yop-center";
 
-        private static string sdkVersion = "3.5.0";
+        private static string sdkVersion = "3.5.1";
 
         private static string sdkLangs = "C#";
 
