@@ -196,39 +196,22 @@ namespace SDK.yop.client
 
         public static string uploadForString(string methodOrUri, YopRequest request)
         {
-            string serverUrl = richRequest(HttpMethodType.POST, methodOrUri, request);
+            string serverUrl = richRequest(HttpMethodType.POST, methodOrUri,
+                    request);
 
-            //NameValueCollection original = request.getParams();
-            //NameValueCollection alternate = new NameValueCollection();
-            List<string> uploadFiles = request.getParam("fileURI");
-            if (null == uploadFiles || uploadFiles.Count == 0)
-            {
-                throw new SystemException("上传文件时参数_file不能为空!");
-            }
 
-            List<UploadFile> upfiles = new List<UploadFile>();
-            foreach (string strPath in uploadFiles)
-            {
-                UploadFile files = new UploadFile();
-                files.Name = "_file";
-                files.Filename = Path.GetFileName(strPath);
-
-                Stream oStream = File.OpenRead(strPath.Split(':')[1]);
-                byte[] arrBytes = new byte[oStream.Length];
-                int offset = 0;
-                while (offset < arrBytes.LongLength)
-                {
-                    offset += oStream.Read(arrBytes, offset, arrBytes.Length - offset);
-                }
-                files.Data = arrBytes;
-                upfiles.Add(files);
-            }
+            string strTemp = request.getParamValue("_file");
+            request.removeParam("_file");
 
             Hashtable headers = signAndEncrypt(request);
+
+            request.addParam("_file", strTemp);
+
             request.setAbsoluteURL(serverUrl);
             request.encoding("blowfish");
+            //请求网站
 
-            Stream stream = HttpUtils.PostFile(request, upfiles, headers).GetResponseStream();
+            Stream stream = HttpUtils.PostAndGetHttpWebResponse(request, "PUT", headers).GetResponseStream();
             string content = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
             return content;
         }
@@ -258,7 +241,7 @@ namespace SDK.yop.client
             //request.addParam(YopConstants.SIGN, signValue);
             headers.Add("x-yop-appkey", appKey);
             headers.Add("x-yop-date", timestamp);
-            headers.Add("Authorization", "YOP-HMAC-AES128 "+ signValue);
+            headers.Add("Authorization", "YOP-HMAC-AES128 " + signValue);
 
             String requestId = Guid.NewGuid().ToString("N");
             request.setYopRequestId(requestId);
@@ -396,23 +379,46 @@ namespace SDK.yop.client
         protected static string richRequest(HttpMethodType type, string methodOrUri, YopRequest request)
         {
             Assert.notNull(methodOrUri, "method name or rest uri");
-            if (methodOrUri.StartsWith(request.getServerRoot()))//检查是否以指定字符开头
+            string serverRoot = request.getServerRoot();
+            String serverUrl;
+            if (methodOrUri.StartsWith("/rest/"))
             {
-                methodOrUri = methodOrUri.Substring(request.getServerRoot().Length);
-            }
-            bool isRest = methodOrUri.StartsWith("/rest/");//检查是否以指定字符开头
-            request.setRest(isRest);//临时变量，避免多次判断
-            string serverUrl = request.getServerRoot();
-            if (isRest)
-            {
+                if (StringUtils.isBlank(serverRoot))
+                {
+                    serverRoot = YopConfig.getServerRoot();
+                }
+                if (methodOrUri.StartsWith(serverRoot))
+                {
+                    methodOrUri = methodOrUri.Substring(serverRoot.Length + 1);
+                }
+                request.setRest(true);
+                request.setServerRoot(serverRoot);
                 methodOrUri = mergeTplUri(methodOrUri, request);
-                serverUrl += methodOrUri;
+                serverUrl = serverRoot + methodOrUri;
+                string version = Regex.Match(methodOrUri, "(?<=/rest/v).*?(?=/)").Value;
+            }
+            else if (methodOrUri.StartsWith("/yos/"))
+            {
+                if (StringUtils.isBlank(serverRoot))
+                {
+                    serverRoot = YopConfig.getYosServerRoot();
+                }
+                if (methodOrUri.StartsWith(serverRoot))
+                {
+                    methodOrUri = methodOrUri.Substring(serverRoot.Length + 1);
+                }
+                request.setRest(true);
+                request.setServerRoot(serverRoot);
+                methodOrUri = mergeTplUri(methodOrUri, request);
+                serverUrl = serverRoot + methodOrUri;
+                string version = Regex.Match(methodOrUri, "(?<=/yos/v).*?(?=/)").Value;
             }
             else
             {
-                serverUrl += "/command?" + YopConstants.METHOD + "=" + methodOrUri;
+                serverUrl = YopConfig.getServerRoot() + "/command?" + YopConstants.METHOD + "=" + methodOrUri;
             }
             request.setMethod(methodOrUri);
+
             return serverUrl;
         }
 
