@@ -63,7 +63,7 @@ namespace SDK.yop.client
          */
         public bool isSuccess()
         {
-            return YopConstants.SUCCESS.Equals(state);
+            return YopConstants.SUCCESS.Equals("SUCCESS");
         }
 
         ///**
