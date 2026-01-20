@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
@@ -27,10 +27,11 @@ namespace SDK.yop.utils
         public static string sign(string content, string privateKey, string input_charset)
         {
             byte[] Data = Encoding.GetEncoding(input_charset).GetBytes(content);
-            RSACryptoServiceProvider rsa = DecodePemPrivateKey(privateKey);
-            SHA1 sh = new SHA1CryptoServiceProvider();
-            byte[] signData = rsa.SignData(Data, sh);
-            return Convert.ToBase64String(signData);
+            using (RSA rsa = DecodePemPrivateKey(privateKey))
+            {
+                byte[] signData = rsa.SignData(Data, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1);
+                return Convert.ToBase64String(signData);
+            }
         }
 
         /// <summary>
@@ -47,10 +48,11 @@ namespace SDK.yop.utils
             byte[] Data = Encoding.GetEncoding(input_charset).GetBytes(content);
             byte[] data = Convert.FromBase64String(signedString);
             RSAParameters paraPub = ConvertFromPublicKey(publicKey);
-            RSACryptoServiceProvider rsaPub = new RSACryptoServiceProvider();
-            rsaPub.ImportParameters(paraPub);
-            SHA1 sh = new SHA1CryptoServiceProvider();
-            result = rsaPub.VerifyData(Data, sh, data);
+            using (RSA rsaPub = RSA.Create())
+            {
+                rsaPub.ImportParameters(paraPub);
+                result = rsaPub.VerifyData(Data, data, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1);
+            }
             return result;
         }
 
@@ -97,53 +99,52 @@ namespace SDK.yop.utils
 
         private static string encrypt(byte[] data, string publicKey, string input_charset)
         {
-            RSACryptoServiceProvider rsa = DecodePemPublicKey(publicKey);
-            SHA256 sh = new SHA256CryptoServiceProvider();
-            byte[] result = rsa.Encrypt(data, false);
-
-            return Convert.ToBase64String(result);
+            using (RSA rsa = DecodePemPublicKey(publicKey))
+            {
+                byte[] result = rsa.Encrypt(data, RSAEncryptionPadding.Pkcs1);
+                return Convert.ToBase64String(result);
+            }
         }
 
         private static string decrypt(byte[] data, string privateKey, string input_charset)
         {
             string result = "";
-            RSACryptoServiceProvider rsa = DecodePemPrivateKey(privateKey);
-            SHA256 sh = new SHA256CryptoServiceProvider();
-            byte[] source = rsa.Decrypt(data, false);
+            using (RSA rsa = DecodePemPrivateKey(privateKey))
+            {
+                byte[] source = rsa.Decrypt(data, RSAEncryptionPadding.Pkcs1);
             char[] asciiChars = new char[Encoding.GetEncoding(input_charset).GetCharCount(source, 0, source.Length)];
             Encoding.GetEncoding(input_charset).GetChars(source, 0, source.Length, asciiChars, 0);
             result = new string(asciiChars);
             //result = ASCIIEncoding.ASCII.GetString(source);
             return result;
+            }
         }
 
-        private static RSACryptoServiceProvider DecodePemPublicKey(String pemstr)
+        private static RSA DecodePemPublicKey(String pemstr)
         {
             byte[] pkcs8publickkey;
             pkcs8publickkey = Convert.FromBase64String(pemstr);
             if (pkcs8publickkey != null)
             {
-                RSACryptoServiceProvider rsa = DecodeRSAPublicKey(pkcs8publickkey);
-                return rsa;
+                return DecodeRSAPublicKey(pkcs8publickkey);
             }
             else
                 return null;
         }
 
-        private static RSACryptoServiceProvider DecodePemPrivateKey(String pemstr)
+        private static RSA DecodePemPrivateKey(String pemstr)
         {
             byte[] pkcs8privatekey;
             pkcs8privatekey = Convert.FromBase64String(pemstr);
             if (pkcs8privatekey != null)
             {
-                RSACryptoServiceProvider rsa = DecodePrivateKeyInfo(pkcs8privatekey);
-                return rsa;
+                return DecodePrivateKeyInfo(pkcs8privatekey);
             }
             else
                 return null;
         }
 
-        private static RSACryptoServiceProvider DecodePrivateKeyInfo(byte[] pkcs8)
+        private static RSA DecodePrivateKeyInfo(byte[] pkcs8)
         {
             byte[] SeqOID = { 0x30, 0x0D, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x01, 0x01, 0x05, 0x00 };
             byte[] seq = new byte[15];
@@ -190,8 +191,7 @@ namespace SDK.yop.utils
                 //------ at this stage, the remaining sequence should be the RSA private key
 
                 byte[] rsaprivkey = binr.ReadBytes((int)(lenstream - mem.Position));
-                RSACryptoServiceProvider rsacsp = DecodeRSAPrivateKey(rsaprivkey);
-                return rsacsp;
+                return DecodeRSAPrivateKey(rsaprivkey);
             }
 
             catch (Exception)
@@ -217,7 +217,7 @@ namespace SDK.yop.utils
             return true;
         }
 
-        private static RSACryptoServiceProvider DecodeRSAPublicKey(byte[] publickey)
+        private static RSA DecodeRSAPublicKey(byte[] publickey)
         {
             // encoded OID sequence for  PKCS #1 rsaEncryption szOID_RSA_RSA = "1.2.840.113549.1.1.1"
             byte[] SeqOID = { 0x30, 0x0D, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x01, 0x01, 0x05, 0x00 };
@@ -295,13 +295,12 @@ namespace SDK.yop.utils
                 int expbytes = (int)binr.ReadByte();        // should only need one byte for actual exponent data (for all useful values)
                 byte[] exponent = binr.ReadBytes(expbytes);
 
-                // ------- create RSACryptoServiceProvider instance and initialize with public key -----
-                RSACryptoServiceProvider RSA = new RSACryptoServiceProvider();
                 RSAParameters RSAKeyInfo = new RSAParameters();
                 RSAKeyInfo.Modulus = modulus;
                 RSAKeyInfo.Exponent = exponent;
-                RSA.ImportParameters(RSAKeyInfo);
-                return RSA;
+                RSA rsa = RSA.Create();
+                rsa.ImportParameters(RSAKeyInfo);
+                return rsa;
             }
             catch (Exception)
             {
@@ -312,7 +311,7 @@ namespace SDK.yop.utils
 
         }
 
-        private static RSACryptoServiceProvider DecodeRSAPrivateKey(byte[] privkey)
+        private static RSA DecodeRSAPrivateKey(byte[] privkey)
         {
             byte[] MODULUS, E, D, P, Q, DP, DQ, IQ;
 
@@ -365,8 +364,6 @@ namespace SDK.yop.utils
                 elems = GetIntegerSize(binr);
                 IQ = binr.ReadBytes(elems);
 
-                // ------- create RSACryptoServiceProvider instance and initialize with public key -----
-                RSACryptoServiceProvider RSA = new RSACryptoServiceProvider();
                 RSAParameters RSAparams = new RSAParameters();
                 RSAparams.Modulus = MODULUS;
                 RSAparams.Exponent = E;
@@ -376,8 +373,9 @@ namespace SDK.yop.utils
                 RSAparams.DP = DP;
                 RSAparams.DQ = DQ;
                 RSAparams.InverseQ = IQ;
-                RSA.ImportParameters(RSAparams);
-                return RSA;
+                RSA rsa = RSA.Create();
+                rsa.ImportParameters(RSAparams);
+                return rsa;
             }
             catch (Exception)
             {

@@ -1,4 +1,4 @@
-﻿﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
@@ -169,9 +169,10 @@ namespace SDK.yop.client
             request.encoding("");
             //请求网站
 
-            Stream stream = HttpUtils.PostAndGetHttpWebResponse(request, "GET", headers).GetResponseStream();
-            string content = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
-            return content;
+            using (var response = HttpUtils.Send(request, "GET", headers))
+            {
+                return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            }
         }
 
         /// <summary>
@@ -189,9 +190,10 @@ namespace SDK.yop.client
             request.encoding("");
             //请求网站
 
-            Stream stream = HttpUtils.PostAndGetHttpWebResponse(request, "POST", headers).GetResponseStream();
-            string content = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
-            return content;
+            using (var response = HttpUtils.Send(request, "POST", headers))
+            {
+                return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            }
         }
 
         public static string uploadForString(string methodOrUri, YopRequest request)
@@ -211,9 +213,10 @@ namespace SDK.yop.client
             request.encoding("blowfish");
             //请求网站
 
-            Stream stream = HttpUtils.PostAndGetHttpWebResponse(request, "PUT", headers).GetResponseStream();
-            string content = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
-            return content;
+            using (var response = HttpUtils.Send(request, "PUT", headers))
+            {
+                return response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            }
         }
 
         /// <summary>

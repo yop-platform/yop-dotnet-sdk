@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Security.Cryptography;
@@ -26,28 +26,30 @@ namespace SDK.yop.utils
 
             Byte[] Cryptograph = null; // 加密后的密文  
 
-            Rijndael Aes = Rijndael.Create();
-            try
+            using (Aes aes = Aes.Create())
             {
-                // 开辟一块内存流  
-                using (MemoryStream Memory = new MemoryStream())
+                try
                 {
-                    // 把内存流对象包装成加密流对象  
-                    using (CryptoStream Encryptor = new CryptoStream(Memory,
-                     Aes.CreateEncryptor(bKey, bVector),
-                     CryptoStreamMode.Write))
+                    // 开辟一块内存流  
+                    using (MemoryStream Memory = new MemoryStream())
                     {
-                        // 明文数据写入加密流  
-                        Encryptor.Write(plainBytes, 0, plainBytes.Length);
-                        Encryptor.FlushFinalBlock();
+                        // 把内存流对象包装成加密流对象  
+                        using (CryptoStream Encryptor = new CryptoStream(Memory,
+                         aes.CreateEncryptor(bKey, bVector),
+                         CryptoStreamMode.Write))
+                        {
+                            // 明文数据写入加密流  
+                            Encryptor.Write(plainBytes, 0, plainBytes.Length);
+                            Encryptor.FlushFinalBlock();
 
-                        Cryptograph = Memory.ToArray();
+                            Cryptograph = Memory.ToArray();
+                        }
                     }
                 }
-            }
-            catch
-            {
-                Cryptograph = null;
+                catch
+                {
+                    Cryptograph = null;
+                }
             }
 
             return Convert.ToBase64String(Cryptograph);
@@ -70,35 +72,37 @@ namespace SDK.yop.utils
 
             Byte[] original = null; // 解密后的明文  
 
-            Rijndael Aes = Rijndael.Create();
-            try
+            using (Aes aes = Aes.Create())
             {
-                // 开辟一块内存流，存储密文  
-                using (MemoryStream Memory = new MemoryStream(encryptedBytes))
+                try
                 {
-                    // 把内存流对象包装成加密流对象  
-                    using (CryptoStream Decryptor = new CryptoStream(Memory,
-                    Aes.CreateDecryptor(bKey, bVector),
-                    CryptoStreamMode.Read))
+                    // 开辟一块内存流，存储密文  
+                    using (MemoryStream Memory = new MemoryStream(encryptedBytes))
                     {
-                        // 明文存储区  
-                        using (MemoryStream originalMemory = new MemoryStream())
+                        // 把内存流对象包装成加密流对象  
+                        using (CryptoStream Decryptor = new CryptoStream(Memory,
+                        aes.CreateDecryptor(bKey, bVector),
+                        CryptoStreamMode.Read))
                         {
-                            Byte[] Buffer = new Byte[1024];
-                            Int32 readBytes = 0;
-                            while ((readBytes = Decryptor.Read(Buffer, 0, Buffer.Length)) > 0)
+                            // 明文存储区  
+                            using (MemoryStream originalMemory = new MemoryStream())
                             {
-                                originalMemory.Write(Buffer, 0, readBytes);
-                            }
+                                Byte[] Buffer = new Byte[1024];
+                                Int32 readBytes = 0;
+                                while ((readBytes = Decryptor.Read(Buffer, 0, Buffer.Length)) > 0)
+                                {
+                                    originalMemory.Write(Buffer, 0, readBytes);
+                                }
 
-                            original = originalMemory.ToArray();
+                                original = originalMemory.ToArray();
+                            }
                         }
                     }
                 }
-            }
-            catch
-            {
-                original = null;
+                catch
+                {
+                    original = null;
+                }
             }
             return Encoding.UTF8.GetString(original);
         }
@@ -114,7 +118,7 @@ namespace SDK.yop.utils
         public static string AESEncrypt(String Data, String Key)
         {
             MemoryStream mStream = new MemoryStream();
-            RijndaelManaged aes = new RijndaelManaged();
+            Aes aes = Aes.Create();
 
             byte[] plainBytes = Encoding.UTF8.GetBytes(Data);
             Byte[] bKey = new Byte[32];
@@ -137,7 +141,7 @@ namespace SDK.yop.utils
             {
                 cryptoStream.Close();
                 mStream.Close();
-                aes.Clear();
+                aes.Dispose();
             }
         }
 
@@ -157,7 +161,7 @@ namespace SDK.yop.utils
             MemoryStream mStream = new MemoryStream(encryptedBytes);
             //mStream.Write( encryptedBytes, 0, encryptedBytes.Length );  
             //mStream.Seek( 0, SeekOrigin.Begin );  
-            RijndaelManaged aes = new RijndaelManaged();
+            Aes aes = Aes.Create();
             aes.Mode = CipherMode.ECB;
             aes.Padding = PaddingMode.Zeros;
             aes.KeySize = 128;
@@ -176,7 +180,7 @@ namespace SDK.yop.utils
             {
                 cryptoStream.Close();
                 mStream.Close();
-                aes.Clear();
+                aes.Dispose();
             }
         }
     }

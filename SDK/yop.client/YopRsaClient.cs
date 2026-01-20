@@ -1,4 +1,4 @@
-﻿﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using SDK.yop.utils;
@@ -13,9 +13,10 @@ using Newtonsoft.Json.Linq;
 using SDK.common;
 using System.Globalization;
 using System.Collections; //使用Hashtable时，必须引入这个命名空间
-using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Linq;
+using System.Net.Http;
 
 namespace SDK.yop.client
 {
@@ -118,13 +119,14 @@ namespace SDK.yop.client
         /// <returns>响应对象</returns>
         public static YopResponse post(String methodOrUri, YopRequest request)
         {
-            HttpWebResponse getResponse = postRsaString(methodOrUri, request);
-            Stream stream = getResponse.GetResponseStream();
-            string content = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
+            using (HttpResponseMessage getResponse = postRsaString(methodOrUri, request))
+            {
+                string content = getResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult();
             YopResponse response = new YopResponse();
             response.result = content;
             handleRsaResult(request, response, getResponse);
             return response;
+            }
         }
 
         public static YopResponse postRsa(String methodOrUri, YopRequest request)
@@ -134,14 +136,15 @@ namespace SDK.yop.client
 
         public static YopResponse get(String methodOrUri, YopRequest request)
         {
-            HttpWebResponse getResponse = getRsaString(methodOrUri, request);
-            Stream stream = getResponse.GetResponseStream();
-            string content = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
+            using (HttpResponseMessage getResponse = getRsaString(methodOrUri, request))
+            {
+                string content = getResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
             YopResponse response = response = new YopResponse();
             response.result = content;
             response = handleRsaResult(request, response, getResponse);
             return response;
+            }
         }
 
         public static YopResponse getRsa(String methodOrUri, YopRequest request)
@@ -155,26 +158,101 @@ namespace SDK.yop.client
         /// <param name="apiUri">目标地址或命名模式的method</param>
         /// <param name="request">客户端请求对象</param>
         /// <returns>字符串形式的响应</returns>
-        public static HttpWebResponse postRsaString(String methodOrUri, YopRequest request)
+        public static HttpResponseMessage postRsaString(String methodOrUri, YopRequest request)
         {
             string serverUrl = richRequest(methodOrUri, request);
             request.setAbsoluteURL(serverUrl);
-            Hashtable headers = SignRsaParameter(methodOrUri, request, "POST");
-
-            request.encoding("");
-            HttpWebResponse getResponse = HttpUtils.PostAndGetHttpWebResponse(request, "POST", headers);
-            return getResponse;
+            
+            Hashtable headers;
+            
+            // 只有form类型请求需要进行URL编码处理
+            if (!StringUtils.hasText(request.getContent()))
+            {
+                // 先进行一次URL编码，用于签名计算
+                request.encoding("sign");
+                headers = SignRsaParameter(methodOrUri, request, "POST");
+                
+                // 再进行一次URL编码，用于HTTP传输（总共两次）
+                request.encoding("");
+            }
+            else
+            {
+                // JSON请求不需要URL编码处理
+                headers = SignRsaParameter(methodOrUri, request, "POST");
+            }
+            
+            return HttpUtils.Send(request, "POST", headers);
         }
 
-        public static HttpWebResponse getRsaString(String methodOrUri, YopRequest request)
+        public static HttpResponseMessage getRsaString(String methodOrUri, YopRequest request)
         {
             string serverUrl = richRequest(methodOrUri, request);
             request.setAbsoluteURL(serverUrl);
 
+            // GET请求需要URL编码处理
+            // 先进行一次URL编码，用于签名计算
+            request.encoding("sign");
             Hashtable headers = SignRsaParameter(methodOrUri, request, "GET");
+            
+            // 再进行一次URL编码，用于HTTP传输（总共两次）
             request.encoding("");
-            HttpWebResponse getResponse = HttpUtils.PostAndGetHttpWebResponse(request, "GET", headers);
-            return getResponse;
+            return HttpUtils.Send(request, "GET", headers);
+        }
+
+        /// <summary>
+        /// 计算请求内容的SHA256值
+        /// </summary>
+        /// <param name="request">请求对象</param>
+        /// <param name="method">HTTP方法</param>
+        /// <returns>SHA256值的十六进制字符串</returns>
+        private static string calculateContentSha256(YopRequest request, string method)
+        {
+            string content = "";
+            
+            if (method.Equals("POST", StringComparison.OrdinalIgnoreCase))
+            {
+                if (StringUtils.hasText(request.getContent()))
+                {
+                    // 如果有直接设置的内容（JSON类型），直接使用原内容
+                    content = request.getContent();
+                }
+                else
+                {
+                    // 构建请求参数字符串（表单类型）
+                    NameValueCollection paramMap = request.getParams();
+                    List<string> paramPairs = new List<string>();
+                    
+                    foreach (string key in paramMap.AllKeys)
+                    {
+                        string[] values = paramMap.GetValues(key);
+                        if (values != null)
+                        {
+                            foreach (string value in values)
+                            {
+                                if (StringUtils.isNotBlank(value))
+                                {
+                                    // 表单类型请求需要URL编码
+                                    string encodedKey = Uri.EscapeDataString(key).Replace("+", "%20");
+                                    string encodedValue = Uri.EscapeDataString(value).Replace("+", "%20");
+                                    paramPairs.Add($"{encodedKey}={encodedValue}");
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 按ASCII顺序排序
+                    paramPairs.Sort();
+                    content = string.Join("&", paramPairs);
+                }
+            }
+            
+            // 计算SHA256，统一使用UTF-8编码
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                byte[] bytes = Encoding.UTF8.GetBytes(content);
+                byte[] hashBytes = sha256.ComputeHash(bytes);
+                return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+            }
         }
 
         private static Hashtable SignRsaParameter(String methodOrUri, YopRequest request, String method)
@@ -195,18 +273,22 @@ namespace SDK.yop.client
 
             Hashtable headers = new Hashtable();
             headers.Add("x-yop-request-id", requestId);
-            headers.Add("x-yop-date", timestamp);
-            headers.Add("x-yop-sdk-version", YopConfig.getSdkVersion());
-            headers.Add("x-yop-sdk-langs", YopConfig.getSdkLangs());
+            // SDK 固定标识头（用于服务端识别 SDK 来源与版本）
+            headers.Add("x-yop-sdk-langs", ".net");
+            headers.Add("x-yop-sdk-version", YopConstants.CLIENT_VERSION);
 
-            string protocolVersion = "yop-auth-v2";
+            // 计算内容SHA256
+            string contentSha256 = calculateContentSha256(request, method);
+            headers.Add("x-yop-content-sha256", contentSha256);
+
+            string protocolVersion = "yop-auth-v3";
             string EXPIRED_SECONDS = "1800";
 
             string authString = protocolVersion + "/" + appKey + "/" + timestamp + "/" + EXPIRED_SECONDS;
 
             List<string> headersToSignSet = new List<string>();
             headersToSignSet.Add("x-yop-request-id");
-            headersToSignSet.Add("x-yop-date");
+            headersToSignSet.Add("x-yop-content-sha256");
 
             if (StringUtils.isBlank(request.getCustomerNo()))
             {
@@ -223,7 +305,18 @@ namespace SDK.yop.client
             string canonicalURI = HttpUtils.getCanonicalURIPath(methodOrUri);
 
             // Formatting the query string with signing protocol.
-            string canonicalQueryString = StringUtils.hasText(request.getContent()) ? "" : getCanonicalQueryString(request, true);
+            // v3协议要求：
+            // - GET：canonicalQueryString 为 URL 查询串（SDK这里由 paramMap 生成）
+            // - POST + form：canonicalQueryString 恒为空字符串
+            // - POST + json：canonicalQueryString 仅取 URL 查询串（通常为空）；绝不能把 body/paramMap 拼进来
+            //
+            // 当前 SDK 的 POST + json 请求不会把 paramMap 附加到 URL 上（HttpUtils 会直接发送 JSON body），
+            // 如果把 paramMap 当作 canonicalQueryString，会造成服务端验签失败。
+            string canonicalQueryString = "";
+            if (method.Equals("GET", StringComparison.OrdinalIgnoreCase))
+            {
+                canonicalQueryString = getCanonicalQueryString(request, true);
+            }
 
             //Sorted the headers should be signed from the request.
             SortedDictionary<String, String> headersToSign = getHeadersToSign(headers, headersToSignSet);
@@ -232,22 +325,23 @@ namespace SDK.yop.client
             string canonicalHeader = getCanonicalHeaders(headersToSign);
 
             string signedHeaders = "";
-            if (headersToSignSet != null)
+            if (headersToSign != null)
             {
+                List<string> sortedHeaderNames = new List<string>();
                 foreach (string key in headersToSign.Keys)
                 {
-                    string value = (string)headersToSign[key];
-                    if (signedHeaders == "")
-                    {
-                        signedHeaders += "";
-                    }
-                    else
+                    sortedHeaderNames.Add(key.ToLower());
+                }
+                sortedHeaderNames.Sort();
+                
+                for (int i = 0; i < sortedHeaderNames.Count; i++)
+                {
+                    if (i > 0)
                     {
                         signedHeaders += ";";
                     }
-                    signedHeaders += key;
+                    signedHeaders += sortedHeaderNames[i];
                 }
-                signedHeaders = signedHeaders.ToLower();
             }
 
             string canonicalRequest = authString + "\n" + method + "\n" + canonicalURI + "\n" + canonicalQueryString + "\n" + canonicalHeader;
@@ -267,15 +361,16 @@ namespace SDK.yop.client
         /// <returns>响应对象</returns>
         public static YopResponse upload(String apiUri, YopRequest request)
         {
-            HttpWebResponse httpWebResponse = uploadRsaForString(apiUri, request);
-            Stream stream = httpWebResponse.GetResponseStream();
-            string content = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
+            using (HttpResponseMessage httpWebResponse = uploadRsaForString(apiUri, request))
+            {
+                string content = httpWebResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
             YopResponse response = new YopResponse();
             response.result = content;
             
             handleRsaResult(request, response, httpWebResponse);
             return response;
+            }
         }
 
         public static YopResponse uploadRsa(String apiUri, YopRequest request)
@@ -289,7 +384,7 @@ namespace SDK.yop.client
         /// <param name="apiUri">目标地址或命名模式的method</param>
         /// <param name="request">客户端请求对象</param>
         /// <returns>字符串形式的响应</returns>
-        public static HttpWebResponse uploadRsaForString(String apiUri, YopRequest request)
+        public static HttpResponseMessage uploadRsaForString(String apiUri, YopRequest request)
         {
             string serverUrl = richRequest(apiUri, request);
             request.setAbsoluteURL(serverUrl);
@@ -302,13 +397,16 @@ namespace SDK.yop.client
 
             request.addParam("_file", strTemp);
 
-            HttpWebResponse httpWebResponse = HttpUtils.PostAndGetHttpWebResponse(request, "PUT", headers);
-            return httpWebResponse;
+            return HttpUtils.Send(request, "PUT", headers);
         }
 
-        protected static YopResponse handleRsaResult(YopRequest request, YopResponse response, HttpWebResponse httpWebResponse)
+        protected static YopResponse handleRsaResult(YopRequest request, YopResponse response, HttpResponseMessage httpWebResponse)
         {
-            string sign = httpWebResponse.Headers["x-yop-sign"];
+            string sign = null;
+            if (httpWebResponse.Headers.TryGetValues("x-yop-sign", out IEnumerable<string> values))
+            {
+                sign = values.FirstOrDefault();
+            }
             if (string.IsNullOrEmpty(sign))
                 return response;
             response.validSign = isValidResult(response.result.ToString(),sign, request.getYopPublicKey());
@@ -324,18 +422,43 @@ namespace SDK.yop.client
         /// 
         public static bool isValidResult(String result, String sign, String publicKey)
         {
-            string sb = "";
-            if (result == null)
+            if (string.IsNullOrWhiteSpace(sign))
             {
-                sb = "";
-            }
-            else
-            {
-                sb = result.Trim();
+                return false;
             }
 
-            sb = sb.Replace("\r", "").Replace("\n", "").Replace(" ", "");
-            return SHA1withRSA.verify(sb, sign, publicKey, "UTF-8");
+            // v3 的签名值通常为 Base64URL-safe 且可能带 "$SHA256" 后缀（与请求 Authorization 的 signature 一致风格）
+            // 而 SHA1withRSA.verify 内部使用 Convert.FromBase64String()，只接受标准 Base64。
+            // 这里做一次兼容转换：去掉后缀 + Base64URL -> 标准 Base64。
+            string signPart = sign.Trim();
+            int dollarIndex = signPart.IndexOf('$');
+            if (dollarIndex > 0)
+            {
+                signPart = signPart.Substring(0, dollarIndex);
+            }
+
+            string standardBase64Sign;
+            try
+            {
+                // 兼容 Base64URL（-/_ 且可能缺少 padding）
+                byte[] signBytes = Base64SecureURL.Decode(signPart);
+                standardBase64Sign = Convert.ToBase64String(signBytes);
+            }
+            catch
+            {
+                // 兜底：如果本身就是标准 Base64，则直接使用
+                standardBase64Sign = signPart;
+            }
+
+            // 按 v3 协议参考 Java 实现：
+            // content = content.replaceAll("[ \t\n]", "")
+            // 注意：这里仅移除 space / tab / '\n'；不做 JSON 语义级重排。
+            string plainText = result ?? string.Empty;
+            plainText = plainText.Replace(" ", string.Empty)
+                                 .Replace("\t", string.Empty)
+                                 .Replace("\n", string.Empty);
+
+            return SHA1withRSA.verify(plainText, standardBase64Sign, publicKey, "UTF-8");
         }
 
         private static SortedDictionary<String, String> getHeadersToSign(Hashtable headers, List<string> headersToSign)
@@ -489,7 +612,20 @@ namespace SDK.yop.client
                     {
                         continue;
                     }
-                    arrayList.Add(key + "=" + HttpUtils.normalize(value));
+                    
+                    // 只有form类型请求需要URL编码，JSON请求不需要
+                    if (StringUtils.hasText(request.getContent()))
+                    {
+                        // JSON请求，参数不需要URL编码
+                        arrayList.Add(key + "=" + value);
+                    }
+                    else
+                    {
+                        // 表单请求，参数需要URL编码，确保空格编码为%20
+                        string encodedKey = Uri.EscapeDataString(key).Replace("+", "%20");
+                        string encodedValue = Uri.EscapeDataString(value).Replace("+", "%20");
+                        arrayList.Add(encodedKey + "=" + encodedValue);
+                    }
                 }
             }
 			

@@ -1,4 +1,4 @@
-﻿using SDK.yop.client;
+using SDK.yop.client;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -15,18 +15,17 @@ namespace SDK.yop.encrypt
         /// <returns></returns>
         public static string md5Digest(string input)
         {
-            System.Security.Cryptography.MD5CryptoServiceProvider md5 = new System.Security.Cryptography.MD5CryptoServiceProvider();
-            byte[] bytValue, bytHash;
-            bytValue = System.Text.Encoding.UTF8.GetBytes(input);
-            bytHash = md5.ComputeHash(bytValue);
-            md5.Clear();
-            string sTemp = "";
-            for (int i = 0; i < bytHash.Length; i++)
+            byte[] bytValue = Encoding.UTF8.GetBytes(input);
+            using (MD5 md5 = MD5.Create())
             {
-                sTemp += bytHash[i].ToString("X").PadLeft(2, '0');
+                byte[] bytHash = md5.ComputeHash(bytValue);
+                StringBuilder sb = new StringBuilder(bytHash.Length * 2);
+                for (int i = 0; i < bytHash.Length; i++)
+                {
+                    sb.Append(bytHash[i].ToString("X2"));
+                }
+                return sb.ToString();
             }
-
-            return sTemp;
         }
 
         public static string SHA(string input)
@@ -46,8 +45,11 @@ namespace SDK.yop.encrypt
         public static string SHA256(string input)
         {
             byte[] SHA256Data = Encoding.UTF8.GetBytes(input);
-            SHA256Managed Sha256 = new SHA256Managed();
-            byte[] data = Sha256.ComputeHash(SHA256Data);
+            byte[] data;
+            using (System.Security.Cryptography.SHA256 sha256 = System.Security.Cryptography.SHA256.Create())
+            {
+                data = sha256.ComputeHash(SHA256Data);
+            }
 
             StringBuilder sb = new StringBuilder();
             foreach (var t in data)

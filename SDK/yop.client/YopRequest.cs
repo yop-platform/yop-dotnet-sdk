@@ -1,4 +1,4 @@
-﻿﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using SDK.yop.utils;
@@ -108,9 +108,7 @@ namespace SDK.yop.client
         /// <returns>long</returns>  
         public static long ConvertDateTimeToInt(System.DateTime time)
         {
-            System.DateTime startTime = TimeZone.CurrentTimeZone.ToLocalTime(new System.DateTime(1970, 1, 1, 0, 0, 0, 0));
-            long t = (time.Ticks - startTime.Ticks) / 10000;   //除10000调整为13位      
-            return t;
+            return new DateTimeOffset(time).ToUnixTimeMilliseconds();
         }
 
         /// <summary>
@@ -442,6 +440,13 @@ namespace SDK.yop.client
         {
             try
             {
+                // JSON请求不需要URL编码处理
+                if (StringUtils.hasText(getContent()))
+                {
+                    return;
+                }
+                
+                // 只有form类型请求需要URL编码
                 foreach (string key in paramMap.AllKeys)
                 {
                     string[] values = paramMap.GetValues(key);
@@ -455,12 +460,16 @@ namespace SDK.yop.client
 
                         if (enType == "blowfish")
                             paramMap.Set(key, UrlEncode(value));
+                        else if (enType == "sign")
+                            // 用于签名计算，只进行一次URL编码
+                            paramMap.Set(key, UrlEncode(value));
                         else
+                            // 用于HTTP传输，进行两次URL编码
                             paramMap.Set(key, UrlEncode(UrlEncode(value)));
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 throw new SystemException();
             }

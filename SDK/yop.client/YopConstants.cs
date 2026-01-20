@@ -6,7 +6,7 @@ namespace SDK.yop.client
 {
     public class YopConstants
     {
-        public const string CLIENT_VERSION = "2.0.1";
+        public const string CLIENT_VERSION = "4.0.0";
 
         public const string ENCODING = "UTF-8";
 

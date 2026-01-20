@@ -13,24 +13,21 @@ namespace SDK.yop.utils
     {
         public static byte[] AESEncrypt(byte[] Data, byte[] Key)
         {
-            MemoryStream mStream = new MemoryStream();
-            RijndaelManaged aes = new RijndaelManaged();
-            aes.Mode = CipherMode.ECB;
-            aes.Padding = PaddingMode.PKCS7;
-            aes.KeySize = 128;
-            aes.Key = Key;
-            CryptoStream cryptoStream = new CryptoStream(mStream, aes.CreateEncryptor(), CryptoStreamMode.Write);
-            try
+            using (MemoryStream mStream = new MemoryStream())
+            using (Aes aes = Aes.Create())
             {
-                cryptoStream.Write(Data, 0, Data.Length);
-                cryptoStream.FlushFinalBlock();
+                aes.Mode = CipherMode.ECB;
+                aes.Padding = PaddingMode.PKCS7;
+                aes.KeySize = 128;
+                aes.Key = Key;
+
+                using (CryptoStream cryptoStream = new CryptoStream(mStream, aes.CreateEncryptor(), CryptoStreamMode.Write))
+                {
+                    cryptoStream.Write(Data, 0, Data.Length);
+                    cryptoStream.FlushFinalBlock();
+                }
+
                 return mStream.ToArray();
-            }
-            finally
-            {
-                cryptoStream.Close();
-                mStream.Close();
-                aes.Clear();
             }
         }
 
@@ -41,38 +38,20 @@ namespace SDK.yop.utils
 
         public static byte[] AESDecrypt(byte[] Data, byte[] Key)
         {
-            MemoryStream mStream = new MemoryStream(Data);
-            RijndaelManaged aes = new RijndaelManaged();
-            aes.Mode = CipherMode.ECB;
-            aes.Padding = PaddingMode.PKCS7;
-            aes.KeySize = 128;
-            aes.Key = Key;
-            CryptoStream cryptoStream = new CryptoStream(mStream, aes.CreateDecryptor(), CryptoStreamMode.Read);
-            try
+            using (MemoryStream mStream = new MemoryStream(Data))
+            using (Aes aes = Aes.Create())
             {
-                // 创建一个临时缓冲区来存放解密数据
-                List<byte> tempList = new List<byte>();
-                byte[] buffer = new byte[1024]; // 这里的缓冲区大小可以根据需要调整
-                int bytesRead;
+                aes.Mode = CipherMode.ECB;
+                aes.Padding = PaddingMode.PKCS7;
+                aes.KeySize = 128;
+                aes.Key = Key;
 
-                // 循环读取数据，直到没有更多
-                while ((bytesRead = cryptoStream.Read(buffer, 0, buffer.Length)) > 0)
+                using (CryptoStream cryptoStream = new CryptoStream(mStream, aes.CreateDecryptor(), CryptoStreamMode.Read))
+                using (MemoryStream output = new MemoryStream())
                 {
-                    for (int i = 0; i < bytesRead; i++)
-                    {
-                        tempList.Add(buffer[i]);
-                    }
+                    cryptoStream.CopyTo(output);
+                    return output.ToArray();
                 }
-
-                // 将List<byte>转换为byte[]
-                return tempList.ToArray();
-            }
-            finally
-            {
-                // 确保资源被正确释放
-                cryptoStream.Close();
-                mStream.Close();
-                aes.Clear();
             }
         }
 
@@ -91,7 +70,7 @@ namespace SDK.yop.utils
 
         }
 
-        public static RSACryptoServiceProvider LoadCertificateString(string strKey, string signType)
+        public static RSA LoadCertificateString(string strKey, string signType)
         {
             byte[] data = null;
             //读取带
@@ -100,17 +79,16 @@ namespace SDK.yop.utils
             //data = GetPem("RSA PRIVATE KEY", data);
             try
             {
-                RSACryptoServiceProvider rsa = DecodeRSAPrivateKey(data, signType);
-                return rsa;
+                return DecodeRSAPrivateKey(data, signType);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 //    throw new YopClientException("EncryptContent = woshihaoren,zheshiyigeceshi,wanerde", ex);
             }
             return null;
         }
 
-        private static RSACryptoServiceProvider DecodeRSAPrivateKey(byte[] privkey, string signType)
+        private static RSA DecodeRSAPrivateKey(byte[] privkey, string signType)
         {
             byte[] MODULUS, E, D, P, Q, DP, DQ, IQ;
 
@@ -164,17 +142,7 @@ namespace SDK.yop.utils
                 IQ = binr.ReadBytes(elems);
 
 
-                // ------- create RSACryptoServiceProvider instance and initialize with public key -----
-                CspParameters CspParameters = new CspParameters();
-                CspParameters.Flags = CspProviderFlags.UseMachineKeyStore;
-
-                int bitLen = 1024;
-                if ("RSA2".Equals(signType))
-                {
-                    bitLen = 2048;
-                }
-
-                RSACryptoServiceProvider RSA = new RSACryptoServiceProvider(bitLen, CspParameters);
+                // ------- create RSA instance and initialize with key parameters -----
                 RSAParameters RSAparams = new RSAParameters();
                 RSAparams.Modulus = MODULUS;
                 RSAparams.Exponent = E;
@@ -184,10 +152,11 @@ namespace SDK.yop.utils
                 RSAparams.DP = DP;
                 RSAparams.DQ = DQ;
                 RSAparams.InverseQ = IQ;
-                RSA.ImportParameters(RSAparams);
-                return RSA;
+                RSA rsa = RSA.Create();
+                rsa.ImportParameters(RSAparams);
+                return rsa;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return null;
             }

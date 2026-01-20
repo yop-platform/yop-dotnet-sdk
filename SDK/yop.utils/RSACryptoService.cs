@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,8 +9,8 @@ namespace SDK.yop.utils
 {
     public class RSACryptoService
     {
-        private RSACryptoServiceProvider _privateKeyRsaProvider;
-        private RSACryptoServiceProvider _publicKeyRsaProvider;
+        private RSA _privateKeyRsaProvider;
+        private RSA _publicKeyRsaProvider;
 
         public RSACryptoService(string privateKey, string publicKey = null)
         {
@@ -31,8 +31,10 @@ namespace SDK.yop.utils
             {
                 throw new Exception("_privateKeyRsaProvider is null");
             }
-            //return Encoding.UTF8.GetString(_privateKeyRsaProvider.Decrypt(System.Convert.FromBase64String(cipherText), false));
-            return Encoding.GetEncoding("UTF-8").GetString(_privateKeyRsaProvider.Decrypt(System.Convert.FromBase64String(cipherText), true));
+            // 兼容旧实现：Decrypt(..., true) 表示 OAEP（历史上是 OAEP-SHA1）
+            return Encoding.GetEncoding("UTF-8").GetString(
+                _privateKeyRsaProvider.Decrypt(Convert.FromBase64String(cipherText), RSAEncryptionPadding.OaepSHA1)
+            );
         }
 
         public string Encrypt(string text)
@@ -41,14 +43,15 @@ namespace SDK.yop.utils
             {
                 throw new Exception("_publicKeyRsaProvider is null");
             }
-            return Convert.ToBase64String(_publicKeyRsaProvider.Encrypt(Encoding.UTF8.GetBytes(text), false));
+            // 兼容旧实现：Encrypt(..., false) 表示 PKCS#1 v1.5
+            return Convert.ToBase64String(_publicKeyRsaProvider.Encrypt(Encoding.UTF8.GetBytes(text), RSAEncryptionPadding.Pkcs1));
         }
 
-        private RSACryptoServiceProvider CreateRsaProviderFromPrivateKey(string privateKey)
+        private RSA CreateRsaProviderFromPrivateKey(string privateKey)
         {
             var privateKeyBits = System.Convert.FromBase64String(privateKey);
 
-            var RSA = new RSACryptoServiceProvider();
+            var rsa = System.Security.Cryptography.RSA.Create();
             var RSAparams = new RSAParameters();
 
             using (BinaryReader binr = new BinaryReader(new MemoryStream(privateKeyBits)))
@@ -81,8 +84,8 @@ namespace SDK.yop.utils
                 RSAparams.InverseQ = binr.ReadBytes(GetIntegerSize(binr));
             }
 
-            RSA.ImportParameters(RSAparams);
-            return RSA;
+            rsa.ImportParameters(RSAparams);
+            return rsa;
         }
 
         private int GetIntegerSize(BinaryReader binr)
@@ -119,7 +122,7 @@ namespace SDK.yop.utils
             return count;
         }
 
-        private RSACryptoServiceProvider CreateRsaProviderFromPublicKey(string publicKeyString)
+        private RSA CreateRsaProviderFromPublicKey(string publicKeyString)
         {
             // encoded OID sequence for  PKCS #1 rsaEncryption szOID_RSA_RSA = "1.2.840.113549.1.1.1"
             byte[] SeqOID = { 0x30, 0x0D, 0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x01, 0x01, 0x05, 0x00 };
@@ -200,14 +203,13 @@ namespace SDK.yop.utils
                     int expbytes = (int)binr.ReadByte();        // should only need one byte for actual exponent data (for all useful values)
                     byte[] exponent = binr.ReadBytes(expbytes);
 
-                    // ------- create RSACryptoServiceProvider instance and initialize with public key -----
-                    RSACryptoServiceProvider RSA = new RSACryptoServiceProvider();
+                    // ------- create RSA instance and initialize with public key -----
                     RSAParameters RSAKeyInfo = new RSAParameters();
                     RSAKeyInfo.Modulus = modulus;
                     RSAKeyInfo.Exponent = exponent;
-                    RSA.ImportParameters(RSAKeyInfo);
-
-                    return RSA;
+                    var rsa = System.Security.Cryptography.RSA.Create();
+                    rsa.ImportParameters(RSAKeyInfo);
+                    return rsa;
                 }
 
             }

@@ -72,6 +72,7 @@ namespace YOP.SDK.Tests
             catch (Exception ex)
             {
                 Console.WriteLine($"下载API测试异常: {ex.Message}");
+                throw;
             }
         }
 
@@ -101,6 +102,7 @@ namespace YOP.SDK.Tests
             catch (Exception ex)
             {
                 Console.WriteLine($"GET Form API测试异常: {ex.Message}");
+                throw;
             }
         }
 
@@ -130,6 +132,7 @@ namespace YOP.SDK.Tests
             catch (Exception ex)
             {
                 Console.WriteLine($"POST Form API测试异常: {ex.Message}");
+                throw;
             }
         }
 
@@ -166,6 +169,7 @@ namespace YOP.SDK.Tests
             catch (Exception ex)
             {
                 Console.WriteLine($"POST JSON API测试异常: {ex.Message}");
+                throw;
             }
         }
 
@@ -203,6 +207,7 @@ namespace YOP.SDK.Tests
             catch (Exception ex)
             {
                 Console.WriteLine($"上传API测试异常: {ex.Message}");
+                throw;
             }
         }
 

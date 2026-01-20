@@ -1,22 +1,21 @@
-﻿﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Net;
-using System.IO;
-using System.Collections.Specialized;
+using System;
 using System.Collections;
-using System.Web;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Threading;
+using SDK.common;
 using SDK.yop.client;
 
 namespace SDK.yop.utils
 {
-    using client;
-    using SDK.common;
-
     public class HttpUtils
     {
-
         /// <summary>
         /// The Set of accepted and valid Url characters per RFC3986.
         /// Characters outside of this set will be encoded.
@@ -28,6 +27,28 @@ namespace SDK.yop.utils
         /// </summary>
         private static string ValidPathCharacters = DetermineValidPathCharacters();
 
+        private static readonly HttpClient SharedClient = CreateHttpClient();
+
+        private static HttpClient CreateHttpClient()
+        {
+            // 兼容历史行为：忽略证书错误（不建议生产环境这么做，但为了不破坏现有 SDK 行为先保留）。
+            var handler = new SocketsHttpHandler
+            {
+                AllowAutoRedirect = true,
+                UseCookies = false,
+                AutomaticDecompression = DecompressionMethods.All,
+                SslOptions =
+                {
+                    RemoteCertificateValidationCallback = (_, _, _, _) => true
+                }
+            };
+
+            return new HttpClient(handler, disposeHandler: true)
+            {
+                Timeout = Timeout.InfiniteTimeSpan
+            };
+        }
+
         // Checks which path characters should not be encoded
         // This set will be different for .NET 4 and .NET 4.5, as
         // per http://msdn.microsoft.com/en-us/library/hh367887%28v=vs.110%29.aspx
@@ -38,247 +59,184 @@ namespace SDK.yop.utils
             var sb = new StringBuilder();
             foreach (var c in basePathCharacters)
             {
-                var escaped = Uri.EscapeUriString(c.ToString());
+                var escaped = Uri.EscapeDataString(c.ToString());
                 if (escaped.Length == 1 && escaped[0] == c)
                     sb.Append(c);
             }
             return sb.ToString();
         }
 
-        public static HttpWebResponse PostAndGetHttpWebResponse(YopRequest yopRequest, string method, Hashtable headers = null)//(string targetUrl, string param, string method, int timeOut)
+        public static HttpResponseMessage Send(YopRequest yopRequest, string method, Hashtable headers = null)//(string targetUrl, string param, string method, int timeOut)
         {
-            try
+            if (yopRequest == null)
             {
-                string targetUrl = yopRequest.getAbsoluteURL();//请求地址
-                CookieContainer cc = new CookieContainer();
-                string param = yopRequest.toQueryString();//请求参数
-                byte[] data = Encoding.GetEncoding("UTF-8").GetBytes(param);
-                if (method.ToUpper() == "GET") targetUrl = targetUrl + (param.Length == 0 ? "" : ("?" + param));
-
-                // 2.0 https证书无效解决方法
-                ServicePointManager.ServerCertificateValidationCallback = new System.Net.Security.RemoteCertificateValidationCallback(CheckValidationResult);
-                // 1.1 https证书无效解决方法
-                //ServicePointManager.CertificatePolicy = new AcceptAllCertificatePolicy();
-
-                System.GC.Collect();//垃圾回收
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls;
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(targetUrl);
-                request.Timeout = yopRequest.getReadTimeout();
-                request.Method = method.ToUpper();
-
-                if (headers != null)
-                {
-                    foreach (string key in headers.Keys)
-                    {
-                        string value = (string)headers[key];
-                        request.Headers.Add(key, value);
-                    }
-                }
-
-                request.Accept = "*/*";
-                //request.Accept = "image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/x-shockwave-flash, application/vnd.ms-excel, application/vnd.ms-powerpoint, application/msword, application/x-ms-application, application/x-ms-xbap, application/vnd.ms-xpsdocument, application/xaml+xml, */*";
-                request.ContentType = "application/x-www-form-urlencoded";
-                request.UserAgent = ".NET/" + YopConfig.getSdkVersion();
-                //request.Referer = refererUrl;
-                request.CookieContainer = cc;
-                request.ServicePoint.Expect100Continue = false;
-                request.ServicePoint.ConnectionLimit = 10000;
-                request.AllowAutoRedirect = true;
-                request.ProtocolVersion = HttpVersion.Version10; //尝试解决基础链接已关闭问题
-                request.KeepAlive = false;//尝试解决基础链接已关闭问题 有可能影响证书问题
-
-                if (method.ToUpper() == "POST")
-                {
-                    if (StringUtils.hasText(yopRequest.getContent()))
-                    {
-                        data = Encoding.UTF8.GetBytes(yopRequest.getContent());
-                        request.ContentType = "application/json";
-                    }
-                    request.ContentLength = method.ToUpper().Trim() == "POST" ? data.Length : 0;
-
-                    Stream newStream = request.GetRequestStream();
-                    newStream.Write(data, 0, data.Length);
-                    newStream.Close();
-                }
-
-                if (method.ToUpper() == "PUT")
-                {
-                    string boundary = "---------------------------" + DateTime.Now.Ticks.ToString("x");
-                    byte[] boundarybytes = Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
-                    byte[] endbytes = Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
-
-                    request.ContentType = "multipart/form-data; boundary=" + boundary;
-                    request.Method = "POST";
-                    request.KeepAlive = true;
-                    request.Credentials = CredentialCache.DefaultCredentials;
-
-                    Stream newStream = request.GetRequestStream();
-
-                    //1.1 key/value
-                    Dictionary<string, string> stringDict = new Dictionary<string, string>();
-                    ArrayList aryParam = new ArrayList(param.Split('&'));
-                    for (int i = 0; i < aryParam.Count; i++)
-                    {
-                        string a = (String)aryParam[i];             //遍历，并且赋值给了a
-                        int n = a.IndexOf("=");
-                        stringDict.Add(a.Substring(0, n), a.Substring(n + 1));
-
-                    }
-
-                    string formdataTemplate = "Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}";
-                    if (stringDict != null)
-                    {
-                        foreach (string key in stringDict.Keys)
-                        {
-                            if (key.Equals("_file")) { continue; }
-                            newStream.Write(boundarybytes, 0, boundarybytes.Length);
-                            string formitem = string.Format(formdataTemplate, key, stringDict[key]);
-                            byte[] formitembytes = Encoding.UTF8.GetBytes(formitem);
-                            newStream.Write(formitembytes, 0, formitembytes.Length);
-                        }
-                    }
-
-                    //1.2 file
-                    string headerTemplate = "Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: application/octet-stream\r\n\r\n";
-                    byte[] buffer = new byte[4096];
-                    int bytesRead = 0;
-
-                    //兼容旧逻辑，暂时保留_file
-                    string filePath = yopRequest.getParamValue("_file");
-                    if (filePath != null && !StringUtils.isBlank(filePath)) {
-                        newStream.Write(boundarybytes, 0, boundarybytes.Length);
-                        string header = string.Format(headerTemplate, "_file", Path.GetFileName(filePath));
-                        byte[] headerbytes = Encoding.UTF8.GetBytes(header);
-                        newStream.Write(headerbytes, 0, headerbytes.Length);
-                        using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
-                        {
-                        while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
-                            {
-                                newStream.Write(buffer, 0, bytesRead);
-                            }
-                        }
-                    }
-
-                    //处理文件参数
-                    Dictionary<string, string> files = yopRequest.getFiles();
-                    foreach (string key in files.Keys)
-                    {
-                        string value = files[key];
-                        newStream.Write(boundarybytes, 0, boundarybytes.Length);
-                        string header = string.Format(headerTemplate, key, Path.GetFileName(value));
-                        byte[] headerbytes = Encoding.UTF8.GetBytes(header);
-                        newStream.Write(headerbytes, 0, headerbytes.Length);
-                        using (FileStream fileStream = new FileStream(value, FileMode.Open, FileAccess.Read))
-                        {
-                        while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
-                            {
-                                newStream.Write(buffer, 0, bytesRead);
-                            }
-                        }
-                    }
-
-                    //1.3 form end
-                    newStream.Write(endbytes, 0, endbytes.Length);
-                    newStream.Close();
-                }
-
-                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-                response.Cookies = cc.GetCookies(request.RequestUri);
-                return response;
+                throw new ArgumentNullException(nameof(yopRequest));
             }
-            catch (WebException ex)
+
+            string targetUrl = yopRequest.getAbsoluteURL();//请求地址
+            string param = yopRequest.toQueryString();//请求参数
+
+            string methodUpper = (method ?? string.Empty).Trim().ToUpperInvariant();
+            if (methodUpper == "GET")
             {
-                System.Diagnostics.Debug.WriteLine(ex.Message);
-                return (HttpWebResponse)ex.Response;
+                targetUrl = targetUrl + (param.Length == 0 ? "" : ("?" + param));
+            }
+
+            // 兼容历史行为：上传逻辑传入 PUT，但底层实际发 POST multipart
+            HttpMethod httpMethod = methodUpper == "PUT" ? HttpMethod.Post : new HttpMethod(methodUpper);
+            var requestMessage = new HttpRequestMessage(httpMethod, targetUrl);
+
+            ApplyHeaders(requestMessage, headers);
+
+            requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+            requestMessage.Headers.UserAgent.Clear();
+            requestMessage.Headers.UserAgent.ParseAdd(".NET/" + YopConfig.getSdkVersion());
+
+            if (methodUpper == "POST")
+            {
+                if (StringUtils.hasText(yopRequest.getContent()))
+                {
+                    requestMessage.Content = new StringContent(yopRequest.getContent(), Encoding.UTF8, "application/json");
+                }
+                else
+                {
+                    requestMessage.Content = new StringContent(param ?? string.Empty, Encoding.UTF8, "application/x-www-form-urlencoded");
+                }
+            }
+            else if (methodUpper == "PUT")
+            {
+                requestMessage.Content = BuildMultipartFormDataContent(yopRequest, param);
+            }
+
+            int timeoutMs = yopRequest.getReadTimeout();
+            using (var cts = new CancellationTokenSource(timeoutMs <= 0 ? 60000 : timeoutMs))
+            {
+                // 不调用 EnsureSuccessStatusCode，保持“错误响应也能读 body”的历史行为
+                return SharedClient.Send(requestMessage, HttpCompletionOption.ResponseHeadersRead, cts.Token);
             }
         }
 
-        /// <summary>
-        /// 解决证书问题 不管证书有效否，直接返回有效
-        /// </summary>
-        // internal class AcceptAllCertificatePolicy : ICertificatePolicy
-        // {
-        //     public bool CheckValidationResult(ServicePoint sPoint, System.Security.Cryptography.X509Certificates.X509Certificate cert, WebRequest wRequest, int certProb)
-        //     {
-        //         return true;
-        //     }
-        // }
-
-        /// <summary>
-        /// 解决证书问题 不管证书有效否，直接返回有效
-        /// </summary>
-        /// <param name= "sender" ></param>
-        /// <param name= "certificate" ></param>
-        /// <param name= "chain" ></param>
-        /// <param name= "errors" ></param>
-        /// <returns></returns>
-        public static bool CheckValidationResult(object sender, System.Security.Cryptography.X509Certificates.X509Certificate certificate, System.Security.Cryptography.X509Certificates.X509Chain chain, System.Net.Security.SslPolicyErrors errors)
+        private static void ApplyHeaders(HttpRequestMessage requestMessage, Hashtable headers)
         {
-            return true;
+            if (headers == null)
+            {
+                return;
+            }
+
+            foreach (object k in headers.Keys)
+            {
+                string key = k?.ToString();
+                if (string.IsNullOrEmpty(key))
+                {
+                    continue;
+                }
+                string value = headers[k]?.ToString() ?? string.Empty;
+                requestMessage.Headers.TryAddWithoutValidation(key, value);
+            }
         }
 
-        public static HttpWebResponse PostFile(YopRequest yopRequest, IEnumerable<UploadFile> files, Hashtable headers = null)
+        private static MultipartFormDataContent BuildMultipartFormDataContent(YopRequest yopRequest, string param)
         {
-            string boundary = "----------------------------" + DateTime.Now.Ticks.ToString("x");
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(yopRequest.getAbsoluteURL());
-            request.ContentType = "multipart/form-data; boundary=" + boundary;
-            request.Method = "POST";
-            request.KeepAlive = true;
-            request.Credentials = CredentialCache.DefaultCredentials;
+            var multipart = new MultipartFormDataContent();
 
-            if (headers != null)
+            // 1) key/value（沿用旧逻辑：直接从 toQueryString() 拆分，不做 URL decode）
+            if (!string.IsNullOrEmpty(param))
             {
-                foreach (string key in headers.Keys)
+                ArrayList aryParam = new ArrayList(param.Split('&'));
+                for (int i = 0; i < aryParam.Count; i++)
                 {
-                    string value = (string)headers[key];
-                    request.Headers.Add(key, value);
+                    string a = (string)aryParam[i];
+                    if (string.IsNullOrEmpty(a))
+                    {
+                        continue;
+                    }
+                    int n = a.IndexOf("=");
+                    if (n <= 0)
+                    {
+                        continue;
+                    }
+                    string key = a.Substring(0, n);
+                    string value = a.Substring(n + 1);
+                    if (key.Equals("_file"))
+                    {
+                        continue;
+                    }
+                    multipart.Add(new StringContent(value ?? string.Empty, Encoding.UTF8), key);
                 }
             }
 
-            MemoryStream stream = new MemoryStream();
-
-            byte[] line = Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
-            NameValueCollection values = yopRequest.getParams();
-            //提交文本字段
-            if (values != null)
+            // 2) file：兼容旧逻辑 _file + files map
+            string filePath = yopRequest.getParamValue("_file");
+            if (!StringUtils.isBlank(filePath) && File.Exists(filePath))
             {
-                string format = "\r\n--" + boundary + "\r\nContent-Disposition: form-data; name=\"{0}\";\r\n\r\n{1}";
-                foreach (string key in values.Keys)
-                {
-                    string s = string.Format(format, key, values[key]);
-                    byte[] data = Encoding.UTF8.GetBytes(s);
-                    stream.Write(data, 0, data.Length);
-                }
-                stream.Write(line, 0, line.Length);
+                var fileStream = File.OpenRead(filePath);
+                var fileContent = new StreamContent(fileStream);
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                multipart.Add(fileContent, "_file", Path.GetFileName(filePath));
             }
 
-            line = Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
-            //提交文件
+            Dictionary<string, string> files = yopRequest.getFiles();
             if (files != null)
             {
-                string fformat = "Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: application/octet-stream\r\n\r\n";
-                foreach (UploadFile file in files)
+                foreach (string key in files.Keys)
                 {
-                    string s = string.Format(fformat, file.Name, file.Filename);
-                    byte[] data = Encoding.UTF8.GetBytes(s);
-                    stream.Write(data, 0, data.Length);
-
-                    stream.Write(file.Data, 0, file.Data.Length);
-                    stream.Write(line, 0, line.Length);
+                    string path = files[key];
+                    if (StringUtils.isBlank(path) || !File.Exists(path))
+                    {
+                        continue;
+                    }
+                    var fileStream = File.OpenRead(path);
+                    var fileContent = new StreamContent(fileStream);
+                    fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                    multipart.Add(fileContent, key, Path.GetFileName(path));
                 }
             }
 
-            request.ContentLength = stream.Length;
+            return multipart;
+        }
 
-            Stream requestStream = request.GetRequestStream();
+        public static HttpResponseMessage SendMultipart(YopRequest yopRequest, IEnumerable<UploadFile> files, Hashtable headers = null)
+        {
+            if (yopRequest == null)
+            {
+                throw new ArgumentNullException(nameof(yopRequest));
+            }
 
-            stream.Position = 0L;
-            stream.WriteTo(requestStream);
-            stream.Close();
+            var requestMessage = new HttpRequestMessage(HttpMethod.Post, yopRequest.getAbsoluteURL());
+            ApplyHeaders(requestMessage, headers);
 
-            requestStream.Close();
-            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-            return response;
+            var multipart = new MultipartFormDataContent();
+
+            NameValueCollection values = yopRequest.getParams();
+            if (values != null)
+            {
+                foreach (string key in values.Keys)
+                {
+                    multipart.Add(new StringContent(values[key] ?? string.Empty, Encoding.UTF8), key);
+                }
+            }
+
+            if (files != null)
+            {
+                foreach (UploadFile file in files)
+                {
+                    if (file == null)
+                    {
+                        continue;
+                    }
+                    var content = new ByteArrayContent(file.Data ?? Array.Empty<byte>());
+                    content.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType ?? "application/octet-stream");
+                    multipart.Add(content, file.Name, file.Filename);
+                }
+            }
+
+            requestMessage.Content = multipart;
+
+            int timeoutMs = yopRequest.getReadTimeout();
+            using (var cts = new CancellationTokenSource(timeoutMs <= 0 ? 60000 : timeoutMs))
+            {
+                return SharedClient.Send(requestMessage, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            }
         }
 
         /**
@@ -311,9 +269,9 @@ namespace SDK.yop.utils
         */
         public static string normalize(string value)
         {
-
-            return UrlEncode(value, System.Text.Encoding.GetEncoding("UTF-8"), true);
-
+            string encoded = UrlEncode(value, System.Text.Encoding.GetEncoding("UTF-8"), true);
+            // 确保空格编码为%20，符合v3协议要求
+            return encoded.Replace("+", "%20");
         }
 
 
@@ -346,12 +304,10 @@ namespace SDK.yop.utils
             }
             if (bToUpper)
                 return stringBuilder.ToString().Replace("+", "%2B").Replace("(", "%28").Replace(")", "%29");
-            //return stringBuilder.ToString().Replace("+", "%20");
             else
-                return stringBuilder.ToString().Replace("(", "%28").Replace(")", "%29");
+                return stringBuilder.ToString().Replace("+", "%20").Replace("(", "%28").Replace(")", "%29");
         }
 
 
     }
-
 }

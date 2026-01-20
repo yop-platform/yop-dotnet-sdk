@@ -12,6 +12,35 @@
 - **系统.NET SDK**: 10.0.102 (.NET 10.0)
 - **支持平台**: 跨平台支持
 
+## 本次已完成变更摘要
+
+### 依赖与项目配置
+- **BouncyCastle 升级**：将历史 `BouncyCastle.Crypto 1.8.0-beta4` 替换为 `BouncyCastle.Cryptography 2.6.2`（兼容现代 .NET、持续维护）。
+- **移除不必要依赖**：删除 `System.Text.Encodings.Web`、`System.Net.Http.Json` 等在现代 .NET 下不需要显式引用的包引用，消除相关 NU1510 告警。
+
+### 网络请求（彻底移除 WebRequest）
+- **移除**：`WebRequest/HttpWebRequest/HttpWebResponse/ServicePointManager`
+- **替代**：统一改为 `HttpClient`（`SDK/yop.utils/HttpUtils.cs`）
+- **方法更名**：
+  - `HttpUtils.PostAndGetHttpWebResponse(...)` → `HttpUtils.Send(...)`
+  - `HttpUtils.PostFile(...)` → `HttpUtils.SendMultipart(...)`
+- **调用方同步**：`YopClient` / `YopRsaClient` 已改为读取 `HttpResponseMessage.Content`，RSA 场景从 response header 读取 `x-yop-sign` 做验签。
+
+### 加密/签名（跨平台替换）
+- **对称加密**：`Rijndael*` → `Aes`（消除 SYSLIB0022）
+- **摘要算法**：`MD5CryptoServiceProvider/SHA256Managed` → `MD5.Create()/SHA256.Create()`（消除 SYSLIB0021）
+- **时间戳**：`TimeZone.CurrentTimeZone` → `DateTimeOffset.ToUnixTimeMilliseconds()`（消除 CS0618）
+- **RSA 跨平台统一**：
+  - 清理 Windows-only P/Invoke：删除 `SDK/yop.utils/RSACryptoServiceProviderExtension.cs`（`advapi32.dll/crypt32.dll`）
+  - 将 `RSACryptoService`、`RSAFromPkcs8`、`RsaAndAes` 等实现迁移到 `RSA.Create()` + `ImportParameters(...)` + `RSAEncryptionPadding/RSASignaturePadding`
+
+### 验证方式（当前已通过）
+```bash
+dotnet build
+dotnet build -warnaserror -p:EnableNETAnalyzers=true -p:AnalysisLevel=latest
+dotnet test --filter "FullyQualifiedName~YopQaFullTest"
+```
+
 ## 升级目标
 
 ### 主要目标
@@ -66,115 +95,5 @@ git tag -a "v3.5.1-original" -m "原始版本备份"
 - 更新加密相关代码
 - 处理System.Web依赖
 
-### 第三阶段：代码现代化
 
-#### 3.1 语法更新
-- 使用null条件运算符
-- 采用字符串插值
-- 使用async/await模式（如适用）
-- 更新using声明
 
-#### 3.2 API更新
-- 替换过时的API调用
-- 使用新的HTTP客户端类
-- 更新加密和序列化方法
-
-#### 3.3 性能优化
-- 使用Span<T>和Memory<T>
-- 优化字符串操作
-- 改进集合处理
-
-### 第四阶段：代码规范统一
-
-#### 4.1 代码风格
-- 统一命名约定
-- 添加文件头注释
-- 规范化方法签名
-
-#### 4.2 文档完善
-- 添加XML文档注释
-- 完善README文档
-- 更新CHANGELOG
-
-#### 4.3 配置标准化
-- 更新.gitignore
-- 完善程序集信息
-- 添加EditorConfig文件
-
-## 具体实施计划
-
-### 步骤1：准备工作
-1. 确认当前功能完整性
-2. 创建测试用例
-3. 备份原始代码
-
-### 步骤2：项目文件升级
-1. 创建新的.csproj文件
-2. 迁移包引用
-3. 更新配置
-
-### 步骤3：代码适配
-1. 解决编译错误
-2. 更新API调用
-3. 处理兼容性问题
-
-### 步骤4：测试验证
-1. 运行单元测试
-2. 功能验证测试
-3. 性能对比测试
-
-### 步骤5：文档更新
-1. 更新README
-2. 完善API文档
-3. 更新部署指南
-
-## 风险评估与应对
-
-### 主要风险
-1. **API兼容性**: BouncyCastle等依赖库的API变化
-2. **平台差异**: .NET Framework与.NET Core/.NET 5+的差异
-3. **依赖冲突**: 新旧依赖包之间的冲突
-
-### 应对策略
-1. **逐步迁移**: 分阶段进行，每个阶段充分测试
-2. **兼容性检查**: 使用兼容性分析工具
-3. **回滚准备**: 保留原始代码备份
-
-## 预期收益
-
-### 技术收益
-- 更好的性能表现
-- 跨平台支持能力
-- 现代化的开发体验
-- 更强的安全性
-
-### 维护收益
-- 简化的依赖管理
-- 更好的工具支持
-- 更容易的部署和分发
-- 活跃的社区支持
-
-## 时间估算
-
-- **第一阶段**: 1-2天
-- **第二阶段**: 2-3天  
-- **第三阶段**: 3-5天
-- **第四阶段**: 2-3天
-- **测试验证**: 2-3天
-
-**总计**: 10-16天
-
-## 成功标准
-
-1. 所有现有功能正常工作
-2. 性能不低于原版本
-3. 支持跨平台部署
-4. 代码质量显著提升
-5. 文档完整准确
-
-## 后续维护
-
-1. 定期更新依赖包
-2. 跟进.NET新版本
-3. 持续完善文档
-4. 收集用户反馈
