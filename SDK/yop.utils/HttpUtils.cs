@@ -66,7 +66,7 @@ namespace SDK.yop.utils
             return sb.ToString();
         }
 
-        public static HttpResponseMessage Send(YopRequest yopRequest, string method, Hashtable headers = null)//(string targetUrl, string param, string method, int timeOut)
+        public static HttpResponseMessage Send(YopRequest yopRequest, string method, Hashtable headers = null, bool urlEncodeFormTwiceForTransport = false)//(string targetUrl, string param, string method, int timeOut)
         {
             if (yopRequest == null)
             {
@@ -74,7 +74,9 @@ namespace SDK.yop.utils
             }
 
             string targetUrl = yopRequest.getAbsoluteURL();//请求地址
-            string param = yopRequest.toQueryString();//请求参数
+            string param = urlEncodeFormTwiceForTransport && !StringUtils.hasText(yopRequest.getContent())
+                ? EncodeParametersForTransport(yopRequest)
+                : yopRequest.toQueryString();//请求参数
 
             string methodUpper = (method ?? string.Empty).Trim().ToUpperInvariant();
             if (methodUpper == "GET")
@@ -114,6 +116,91 @@ namespace SDK.yop.utils
                 // 不调用 EnsureSuccessStatusCode，保持“错误响应也能读 body”的历史行为
                 return SharedClient.Send(requestMessage, HttpCompletionOption.ResponseHeadersRead, cts.Token);
             }
+        }
+
+        /// <summary>
+        /// Java 参考实现：URLEncoder.encode(name) + '=' + URLEncoder.encode(URLEncoder.encode(value))
+        /// - name 编码 1 次
+        /// - value 编码 2 次
+        /// 注意：该逻辑仅用于 HTTP 传输层（application/x-www-form-urlencoded / query），不用于签名。
+        /// </summary>
+        private static string EncodeParametersForTransport(YopRequest request)
+        {
+            NameValueCollection paramMap = request.getParams();
+            if (paramMap == null || paramMap.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            List<string> pairs = new List<string>();
+            foreach (string key in paramMap.AllKeys)
+            {
+                if (key == null)
+                {
+                    continue;
+                }
+
+                string[] values = paramMap.GetValues(key);
+                if (values == null || values.Length == 0)
+                {
+                    pairs.Add(UrlEncodeFormComponent(key));
+                    continue;
+                }
+
+                foreach (string v in values)
+                {
+                    if (v == null)
+                    {
+                        pairs.Add(UrlEncodeFormComponent(key));
+                        continue;
+                    }
+                    string encodedName = UrlEncodeFormComponent(key);
+                    string encodedValue = UrlEncodeFormComponent(UrlEncodeFormComponent(v));
+                    pairs.Add(encodedName + "=" + encodedValue);
+                }
+            }
+
+            // 对齐 Java：按 ASCII 规则排序
+            pairs.Sort((a, b) => string.CompareOrdinal(a, b));
+            return string.Join("&", pairs);
+        }
+
+        /// <summary>
+        /// 模拟 Java URLEncoder.encode（UTF-8；空格为 '+'；'*' 不编码）。
+        /// </summary>
+        private static string UrlEncodeFormComponent(string value)
+        {
+            if (value == null)
+            {
+                return string.Empty;
+            }
+
+            byte[] bytes = Encoding.UTF8.GetBytes(value);
+            StringBuilder sb = new StringBuilder(bytes.Length * 2);
+            foreach (byte b in bytes)
+            {
+                char c = (char)b;
+                bool safe =
+                    (c >= 'a' && c <= 'z') ||
+                    (c >= 'A' && c <= 'Z') ||
+                    (c >= '0' && c <= '9') ||
+                    c == '-' || c == '_' || c == '.' || c == '*';
+
+                if (safe)
+                {
+                    sb.Append(c);
+                }
+                else if (c == ' ')
+                {
+                    sb.Append('+');
+                }
+                else
+                {
+                    sb.Append('%');
+                    sb.Append(b.ToString("X2"));
+                }
+            }
+            return sb.ToString();
         }
 
         private static void ApplyHeaders(HttpRequestMessage requestMessage, Hashtable headers)

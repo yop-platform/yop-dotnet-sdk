@@ -24,6 +24,16 @@ namespace SDK.yop.client
     {
         protected static Dictionary<string, List<string>> uriTemplateCache = new Dictionary<string, List<string>>();
 
+        private static void RemoveProtectedParamsForRsa(YopRequest request)
+        {
+            // v3 协议：鉴权/签名参数走 Header；URL 参数只保留业务参数。
+            // 这些 protected key 若出现在 query/form 中，服务端侧通常不会纳入签名计算，导致验签不一致。
+            foreach (string k in YopConstants.PROTECTED_KEY)
+            {
+                request.removeParam(k);
+            }
+        }
+
         /// <summary>
         /// 自动补全请求
         /// </summary>
@@ -168,20 +178,17 @@ namespace SDK.yop.client
             // 只有form类型请求需要进行URL编码处理
             if (!StringUtils.hasText(request.getContent()))
             {
-                // 先进行一次URL编码，用于签名计算
-                request.encoding("sign");
+                RemoveProtectedParamsForRsa(request);
                 headers = SignRsaParameter(methodOrUri, request, "POST");
-                
-                // 再进行一次URL编码，用于HTTP传输（总共两次）
-                request.encoding("");
             }
             else
             {
                 // JSON请求不需要URL编码处理
+                RemoveProtectedParamsForRsa(request);
                 headers = SignRsaParameter(methodOrUri, request, "POST");
             }
             
-            return HttpUtils.Send(request, "POST", headers);
+            return HttpUtils.Send(request, "POST", headers, urlEncodeFormTwiceForTransport: !StringUtils.hasText(request.getContent()));
         }
 
         public static HttpResponseMessage getRsaString(String methodOrUri, YopRequest request)
@@ -189,14 +196,9 @@ namespace SDK.yop.client
             string serverUrl = richRequest(methodOrUri, request);
             request.setAbsoluteURL(serverUrl);
 
-            // GET请求需要URL编码处理
-            // 先进行一次URL编码，用于签名计算
-            request.encoding("sign");
+            RemoveProtectedParamsForRsa(request);
             Hashtable headers = SignRsaParameter(methodOrUri, request, "GET");
-            
-            // 再进行一次URL编码，用于HTTP传输（总共两次）
-            request.encoding("");
-            return HttpUtils.Send(request, "GET", headers);
+            return HttpUtils.Send(request, "GET", headers, urlEncodeFormTwiceForTransport: true);
         }
 
         /// <summary>
@@ -231,10 +233,10 @@ namespace SDK.yop.client
                             {
                                 if (StringUtils.isNotBlank(value))
                                 {
-                                    // 表单类型请求需要URL编码
-                                    string encodedKey = Uri.EscapeDataString(key).Replace("+", "%20");
-                                    string encodedValue = Uri.EscapeDataString(value).Replace("+", "%20");
-                                    paramPairs.Add($"{encodedKey}={encodedValue}");
+                        // 表单类型请求需要URL编码（RFC3986，空格为%20，且统一大写）
+                        string encodedKey = HttpUtils.normalize(key);
+                        string encodedValue = HttpUtils.normalize(value);
+                        paramPairs.Add($"{encodedKey}={encodedValue}");
                                 }
                             }
                         }
@@ -258,11 +260,10 @@ namespace SDK.yop.client
         private static Hashtable SignRsaParameter(String methodOrUri, YopRequest request, String method)
         {
             Assert.notNull(request.getSecretKey(), "secretKey must be specified");
-            string appKey = request.getParamValue(YopConstants.APP_KEY);
+            string appKey = request.getAppKey();
             if (StringUtils.isBlank(appKey))
             {
-                appKey = StringUtils.trimToNull(request
-                        .getParamValue(YopConstants.CUSTOMER_NO));
+                appKey = StringUtils.trimToNull(request.getCustomerNo());
             }
 
             Assert.notNull(request.getSecretKey(), "secretKey must be specified");
@@ -273,6 +274,8 @@ namespace SDK.yop.client
 
             Hashtable headers = new Hashtable();
             headers.Add("x-yop-request-id", requestId);
+            // v3 协议要求：Authorization 中的 timestamp 必须与 x-yop-date 一致
+            headers.Add("x-yop-date", timestamp);
             // SDK 固定标识头（用于服务端识别 SDK 来源与版本）
             headers.Add("x-yop-sdk-langs", ".net");
             headers.Add("x-yop-sdk-version", YopConstants.CLIENT_VERSION);
@@ -288,6 +291,7 @@ namespace SDK.yop.client
 
             List<string> headersToSignSet = new List<string>();
             headersToSignSet.Add("x-yop-request-id");
+            headersToSignSet.Add("x-yop-date");
             headersToSignSet.Add("x-yop-content-sha256");
 
             if (StringUtils.isBlank(request.getCustomerNo()))
@@ -621,9 +625,9 @@ namespace SDK.yop.client
                     }
                     else
                     {
-                        // 表单请求，参数需要URL编码，确保空格编码为%20
-                        string encodedKey = Uri.EscapeDataString(key).Replace("+", "%20");
-                        string encodedValue = Uri.EscapeDataString(value).Replace("+", "%20");
+                        // 表单请求，参数需要URL编码（RFC3986，空格为%20，且统一大写）
+                        string encodedKey = HttpUtils.normalize(key);
+                        string encodedValue = HttpUtils.normalize(value);
                         arrayList.Add(encodedKey + "=" + encodedValue);
                     }
                 }

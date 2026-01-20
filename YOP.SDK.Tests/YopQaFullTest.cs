@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Http;
 using System.Text;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using SDK.yop.client;
 using SDK.yop.utils;
 using SDK.yop.encrypt;
@@ -66,6 +65,7 @@ namespace YOP.SDK.Tests
 
                 response.Should().NotBeNull();
                 response.result.Should().NotBeNull();
+                AssertRemoteApiSuccess(response.result.ToString(), "下载API(TestDownloadOldApi)");
 
                 Console.WriteLine($"下载API响应: {FormatJson(response.result.ToString())}");
             }
@@ -85,7 +85,7 @@ namespace YOP.SDK.Tests
             try
             {
                 var request = new YopRequest(AppKey, SecretKey, YopPublicKey);
-                request.addParam("file", "test_file");
+                request.addParam("file", "测试特殊字符`! @ # $ % ^ & * ( ) _ + - = [ ] { } \\");
                 request.addParam("fileFileSize", "1024");
                 request.addParam("fileMd5", "d41d8cd98f00b204e9800998ecf8427e");
                 request.addParam("fileOriginalFileName", "test.txt");
@@ -96,6 +96,7 @@ namespace YOP.SDK.Tests
 
                 response.Should().NotBeNull();
                 response.result.Should().NotBeNull();
+                AssertRemoteApiSuccess(response.result.ToString(), "GET Form(TestGetForm)");
 
                 Console.WriteLine($"GET Form API响应: {FormatJson(response.result.ToString())}");
             }
@@ -126,6 +127,7 @@ namespace YOP.SDK.Tests
 
                 response.Should().NotBeNull();
                 response.result.Should().NotBeNull();
+                AssertRemoteApiSuccess(response.result.ToString(), "POST Form(TestPostForm)");
 
                 Console.WriteLine($"POST Form API响应: {FormatJson(response.result.ToString())}");
             }
@@ -163,6 +165,7 @@ namespace YOP.SDK.Tests
 
                 response.Should().NotBeNull();
                 response.result.Should().NotBeNull();
+                AssertRemoteApiSuccess(response.result.ToString(), "POST JSON(TestPostJson)");
 
                 Console.WriteLine($"POST JSON API响应: {FormatJson(response.result.ToString())}");
             }
@@ -194,6 +197,7 @@ namespace YOP.SDK.Tests
                     var response = YopRsaClient.upload("/yos/v1.0/test/mer-file-upload/upload/backupload", request);
                     response.Should().NotBeNull();
                     response.result.Should().NotBeNull();
+                    AssertRemoteApiSuccess(response.result.ToString(), "上传API(TestUploadOldApi)");
                     Console.WriteLine($"上传API响应: {FormatJson(response.result.ToString())}");
                 }
                 finally
@@ -401,6 +405,66 @@ namespace YOP.SDK.Tests
             {
                 return json;
             }
+        }
+
+        /// <summary>
+        /// 远程接口断言：聚焦“签名/鉴权是否通过”，避免出现鉴权失败但单测仍通过。
+        /// 注意：QA 环境业务侧可能返回 state=FAILURE / 业务错误码，这里不强制要求业务成功。
+        /// </summary>
+        private void AssertRemoteApiSuccess(string rawResponse, string scenario)
+        {
+            rawResponse.Should().NotBeNullOrWhiteSpace($"{scenario} 响应为空");
+
+            JToken token;
+            try
+            {
+                token = JToken.Parse(rawResponse);
+            }
+            catch
+            {
+                // 非 JSON（例如下载二进制/纯文本），此处只校验非空即可
+                return;
+            }
+
+            // 1) 新版统一包装：state + error
+            string state = token["state"]?.ToString();
+            if (!string.IsNullOrWhiteSpace(state))
+            {
+                if (string.Equals(state, "SUCCESS", StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                if (string.Equals(state, "FAILURE", StringComparison.OrdinalIgnoreCase))
+                {
+                    string errCode = token["error"]?["code"]?.ToString();
+                    string errMsg = token["error"]?["message"]?.ToString();
+                    string errSolution = token["error"]?["solution"]?.ToString();
+
+                    // 只拦截“鉴权/验签失败”
+                    bool isAuthFail =
+                        string.Equals(errCode, "40047", StringComparison.OrdinalIgnoreCase) ||
+                        (!string.IsNullOrWhiteSpace(errMsg) && errMsg.Contains("鉴权")) ||
+                        (!string.IsNullOrWhiteSpace(errSolution) && errSolution.Contains("authentication", StringComparison.OrdinalIgnoreCase));
+
+                    isAuthFail.Should().BeFalse($"{scenario} 发生鉴权/验签失败，响应: {FormatJson(rawResponse)}");
+                    return;
+                }
+            }
+
+            // 2) 常见错误包装：code/subCode
+            string code = token["code"]?.ToString();
+            string subCode = token["subCode"]?.ToString();
+            string message = token["message"]?.ToString();
+            string subMessage = token["subMessage"]?.ToString();
+
+            bool isAuthVerifyFail =
+                string.Equals(code, "40047", StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrWhiteSpace(subCode) && subCode.Contains("authentication", StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(message) && message.Contains("鉴权")) ||
+                (!string.IsNullOrWhiteSpace(subMessage) && subMessage.Contains("验签"));
+
+            isAuthVerifyFail.Should().BeFalse($"{scenario} 发生鉴权/验签失败，响应: {FormatJson(rawResponse)}");
         }
     }
 }

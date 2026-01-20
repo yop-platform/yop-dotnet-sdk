@@ -463,6 +463,12 @@ namespace SDK.yop.client
                         else if (enType == "sign")
                             // 用于签名计算，只进行一次URL编码
                             paramMap.Set(key, UrlEncode(value));
+                        else if (enType == "transport")
+                            // 用于HTTP传输：对原始值进行一次URL编码（RFC3986，空格为%20）
+                            paramMap.Set(key, UrlEncode(value));
+                        else if (enType == "transport-after-sign")
+                            // 用于HTTP传输：在已做过一次URL编码（sign）的基础上，再补一次编码（总共两次）
+                            paramMap.Set(key, UrlEncode(value));
                         else
                             // 用于HTTP传输，进行两次URL编码
                             paramMap.Set(key, UrlEncode(UrlEncode(value)));
