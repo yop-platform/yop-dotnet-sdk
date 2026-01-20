@@ -87,6 +87,11 @@ namespace SDK.yop.client
             return yosServerRoot;
         }
 
+        public static void setYosServerRoot(string yosServerRoot)
+        {
+            YopConfig.yosServerRoot = yosServerRoot;
+        }
+
         public static string getSdkVersion()
         {
             return sdkVersion;

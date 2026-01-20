@@ -6,7 +6,7 @@ using System.IO;
 
 namespace SDK.yop.utils
 {
-    class AESHelper
+    public class AESHelper
     {
         /// <summary>  
         /// AES加密  
