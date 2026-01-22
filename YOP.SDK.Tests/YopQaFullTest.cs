@@ -247,13 +247,11 @@ namespace YOP.SDK.C.Tests
             {
                 var request = new YopRequest(AppKey, SecretKey);
                 request.addParam("testParam", "testValue");
-                request.setEncrypt(true);
                 request.setSignRet(true);
 
                 // 验证请求参数
                 request.getAppKey().Should().Be(AppKey);
                 request.getSecretKey().Should().Be(SecretKey);
-                request.isEncrypt().Should().BeTrue();
                 request.isSignRet().Should().BeTrue();
 
                 // 验证参数添加

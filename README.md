@@ -35,10 +35,6 @@ YOP .NET SDK 是易宝支付开放平台提供的官方 .NET SDK，用于简化�
 ```csharp
 using SDK.yop.client;
 
-// 配置应用信息
-YopConfig.setAppKey("YOUR_APP_KEY");           // 应用密钥
-YopConfig.setAesSecretKey("YOUR_SECRET_KEY");  // 商户私钥
-
 // 配置服务器地址
 // 测试环境
 YopConfig.setServerRoot("https://sandbox.yeepay.com/yop-center");
@@ -70,14 +66,6 @@ request.addParam("orderAmount", "100.00");
 // 添加文件参数（用于文件上传）
 request.addFile("merQual", "/path/to/your/file.txt");
 
-// 设置商户编号（可选）
-request.setCustomerNo("YOUR_CUSTOMER_NO");
-
-// 设置加密（可选）
-request.setEncrypt(true);
-
-// 设置返回结果签名验证（可选）
-request.setSignRet(true);
 ```
 
 ## API调用示例
@@ -243,19 +231,7 @@ public void TestDownloadOldApi()
 
 ## 高级功能
 
-### 1. 数据加密
-
-SDK 支持请求和响应数据的自动加密：
-
-```csharp
-// 启用请求加密
-request.setEncrypt(true);
-
-// 启用响应签名验证
-request.setSignRet(true);
-```
-
-### 2. 签名验证
+### 1. 签名验证
 
 SDK 自动处理请求签名，并支持响应签名验证：
 
@@ -271,7 +247,7 @@ else
 }
 ```
 
-### 3. 请求配置和签名功能测试
+### 2. 请求配置和签名功能测试
 
 ```csharp
 public void TestRequestConfigAndSign()
@@ -280,14 +256,10 @@ public void TestRequestConfigAndSign()
     {
         var request = new YopRequest(AppKey, SecretKey);
         request.addParam("testParam", "testValue");
-        request.setEncrypt(true);
-        request.setSignRet(true);
 
         // 验证请求参数
         request.getAppKey().Should().Be(AppKey);
         request.getSecretKey().Should().Be(SecretKey);
-        request.isEncrypt().Should().BeTrue();
-        request.isSignRet().Should().BeTrue();
 
         // 验证参数添加
         request.getParamValue("testParam").Should().Be("testValue");
@@ -302,7 +274,7 @@ public void TestRequestConfigAndSign()
 }
 ```
 
-### 4. 响应处理功能测试
+### 3. 响应处理功能测试
 
 ```csharp
 public void TestResponseHandling()
@@ -497,7 +469,7 @@ public void TestAllApis()
 private const string AppKey = "app_100800191870146";
 private const string SecretKey = "YOUR_SECRET_KEY";
 // 测试环境，平台公钥
-private const string YopPublicKey = "YOUR_PUBLIC_KEY";
+private const string YopPublicKey = "YOP_PUBLIC_KEY";
 // 测试环境，请求端点地址
 private const string ServerRoot = "https://sandbox.yeepay.com/yop-center";
 private const string YosServerRoot = "https://sandbox.yeepay.com/yop-center";
@@ -507,7 +479,7 @@ private const string YosServerRoot = "https://sandbox.yeepay.com/yop-center";
 
 ```csharp
 // 生产环境，平台公钥
-// private const string YopPublicKey = "YOUR_PUBLIC_KEY";
+// private const string YopPublicKey = "YOP_PUBLIC_KEY";
 // 生产环境，请求端点地址
 // private const string ServerRoot = "https://openapi.yeepay.com/yop-center";
 // private const string YosServerRoot = "https://yos.yeepay.com/yop-center";
