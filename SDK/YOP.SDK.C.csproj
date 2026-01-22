@@ -3,18 +3,18 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>SDK</RootNamespace>
-    <AssemblyName>YOP.SDK</AssemblyName>
-    <AssemblyTitle>YOP .NET SDK</AssemblyTitle>
+    <AssemblyName>YOP.SDK.C</AssemblyName>
+    <AssemblyTitle>YOP .NET SDK C</AssemblyTitle>
     <AssemblyDescription>Yeepay Open Platform .NET SDK for payment integration</AssemblyDescription>
     <AssemblyCompany>Yeepay</AssemblyCompany>
-    <AssemblyProduct>YOP .NET SDK</AssemblyProduct>
+    <AssemblyProduct>YOP .NET SDK C</AssemblyProduct>
     <AssemblyCopyright>Copyright © Yeepay 2016-2026</AssemblyCopyright>
     <AssemblyTrademark>YOP is a trademark of Yeepay</AssemblyTrademark>
     <AssemblyVersion>4.0.0</AssemblyVersion>
     <FileVersion>4.0.0</FileVersion>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Authors>Yeepay</Authors>
-    <PackageId>YOP.SDK</PackageId>
+    <PackageId>YOP.SDK.C</PackageId>
     <PackageVersion>4.0.0</PackageVersion>
     <PackageDescription>Yeepay Open Platform .NET SDK for payment integration</PackageDescription>
     <PackageTags>yeepay;payment;sdk;yop;api</PackageTags>

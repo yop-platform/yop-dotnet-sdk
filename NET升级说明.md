@@ -42,7 +42,7 @@ dotnet build -warnaserror -p:EnableNETAnalyzers=true -p:AnalysisLevel=latest
 dotnet test --filter "FullyQualifiedName~YopQaFullTest"
 
 # 验证.NET 10.0兼容性
-dotnet add package YOP.SDK --version 4.0.0 --source /path/to/nupkg
+dotnet add package YOP.SDK.C --version 4.0.0 --source /path/to/nupkg
 dotnet build
 ```
 
@@ -76,7 +76,7 @@ git tag -a "v3.5.1-original" -m "原始版本备份"
 ```
 
 #### 1.2 创建新的SDK风格项目文件
-- 移除旧的`YOP.SDK.csproj`
+- 移除旧的`YOP.SDK.C.csproj`
 - 创建新的SDK风格项目文件
 - 移除`packages.config`
 - 更新依赖引用方式

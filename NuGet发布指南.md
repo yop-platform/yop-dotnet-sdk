@@ -18,11 +18,11 @@
 
 ### 1. 检查项目配置
 
-确保 `SDK/YOP.SDK.csproj` 文件包含完整的 NuGet 元数据：
+确保 `SDK/YOP.SDK.C.csproj` 文件包含完整的 NuGet 元数据：
 
 ```xml
 <PropertyGroup>
-  <PackageId>YOP.SDK</PackageId>
+  <PackageId>YOP.SDK.C</PackageId>
   <PackageVersion>4.0.0</PackageVersion>
   <Authors>Yeepay</Authors>
   <PackageDescription>Yeepay Open Platform .NET SDK for payment integration</PackageDescription>
@@ -42,9 +42,9 @@
 2. 登录或注册账户
 3. 进入 **Account Settings** → **API Keys**
 4. 创建新的 API 密钥，设置：
-   - **Key name**: 例如 "YOP.SDK Publishing Key"
+   - **Key name**: 例如 "YOP.SDK.C Publishing Key"
    - **Expiration**: 选择合适的过期时间
-   - **Glob pattern**: `YOP.SDK` 或 `YOP.SDK/*`（限制只能发布特定包）
+   - **Glob pattern**: `YOP.SDK.C` 或 `YOP.SDK.C/*`（限制只能发布特定包）
 5. 复制生成的 API 密钥（**只显示一次，请妥善保存**）
 
 #### 发布到私有源
@@ -97,8 +97,8 @@ dotnet pack -c Release --include-symbols --include-source -o ./nupkg
 ```
 
 打包完成后，您会在输出目录（默认是 `bin/Release/`）找到：
-- `YOP.SDK.4.0.0.nupkg` - NuGet 包文件
-- `YOP.SDK.4.0.0.snupkg` - 符号包文件（如果包含符号）
+- `YOP.SDK.C.4.0.0.nupkg` - NuGet 包文件
+- `YOP.SDK.C.4.0.0.snupkg` - 符号包文件（如果包含符号）
 
 ### 步骤 4: 验证包文件
 
@@ -123,7 +123,7 @@ dotnet nuget locals all --list
 # 下载地址: https://github.com/NuGetPackageExplorer/NuGetPackageExplorer
 
 # 或使用命令行工具
-dotnet nuget verify ./nupkg/YOP.SDK.4.0.0.nupkg
+dotnet nuget verify ./nupkg/YOP.SDK.C.4.0.0.nupkg
 ```
 
 ### 2. 本地测试安装
@@ -140,7 +140,7 @@ cd TestNuGetPackage
 dotnet nuget add source ../../../SDK/nupkg --name local-yop-sdk
 
 # 安装包
-dotnet add package YOP.SDK --version 4.0.0 --source local-yop-sdk
+dotnet add package YOP.SDK.C --version 4.0.0 --source local-yop-sdk
 
 # 验证安装
 dotnet restore
@@ -188,23 +188,23 @@ $env:NUGET_API_KEY="YOUR_API_KEY"
 cd SDK
 
 # 发布主包
-dotnet nuget push ./bin/Release/YOP.SDK.4.0.0.nupkg --api-key YOUR_API_KEY --source https://api.nuget.org/v3/index.json
+dotnet nuget push ./bin/Release/YOP.SDK.C.4.0.0.nupkg --api-key YOUR_API_KEY --source https://api.nuget.org/v3/index.json
 
 # 如果使用环境变量
-dotnet nuget push ./bin/Release/YOP.SDK.4.0.0.nupkg --api-key $NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+dotnet nuget push ./bin/Release/YOP.SDK.C.4.0.0.nupkg --api-key $NUGET_API_KEY --source https://api.nuget.org/v3/index.json
 
 # 同时发布符号包
-dotnet nuget push ./bin/Release/YOP.SDK.4.0.0.snupkg --api-key YOUR_API_KEY --source https://api.nuget.org/v3/index.json --symbol-source https://api.nuget.org/v3/index.json
+dotnet nuget push ./bin/Release/YOP.SDK.C.4.0.0.snupkg --api-key YOUR_API_KEY --source https://api.nuget.org/v3/index.json --symbol-source https://api.nuget.org/v3/index.json
 ```
 
 #### 步骤 3: 验证发布
 
-1. 访问 [NuGet.org](https://www.nuget.org/packages/YOP.SDK)
+1. 访问 [NuGet.org](https://www.nuget.org/packages/YOP.SDK.C)
 2. 等待几分钟让包索引完成
 3. 尝试安装包验证：
 
 ```bash
-dotnet add package YOP.SDK --version 4.0.0
+dotnet add package YOP.SDK.C --version 4.0.0
 ```
 
 ### 方法二：使用 NuGet CLI
@@ -214,10 +214,10 @@ dotnet add package YOP.SDK --version 4.0.0
 nuget setApiKey YOUR_API_KEY -Source https://api.nuget.org/v3/index.json
 
 # 发布包
-nuget push ./bin/Release/YOP.SDK.4.0.0.nupkg -Source https://api.nuget.org/v3/index.json
+nuget push ./bin/Release/YOP.SDK.C.4.0.0.nupkg -Source https://api.nuget.org/v3/index.json
 
 # 发布符号包
-nuget push ./bin/Release/YOP.SDK.4.0.0.snupkg -Source https://api.nuget.org/v3/index.json
+nuget push ./bin/Release/YOP.SDK.C.4.0.0.snupkg -Source https://api.nuget.org/v3/index.json
 ```
 
 ### 方法三：通过 NuGet.org 网站
@@ -239,7 +239,7 @@ nuget push ./bin/Release/YOP.SDK.4.0.0.snupkg -Source https://api.nuget.org/v3/i
 dotnet nuget add source https://pkgs.dev.azure.com/ORG/PROJECT/_packaging/FEED/nuget/v3/index.json --name azure-artifacts --username USERNAME --password PAT_TOKEN
 
 # 发布包
-dotnet nuget push ./bin/Release/YOP.SDK.4.0.0.nupkg --source azure-artifacts --api-key az
+dotnet nuget push ./bin/Release/YOP.SDK.C.4.0.0.nupkg --source azure-artifacts --api-key az
 ```
 
 ### GitHub Packages
@@ -249,7 +249,7 @@ dotnet nuget push ./bin/Release/YOP.SDK.4.0.0.nupkg --source azure-artifacts --a
 dotnet nuget add source https://nuget.pkg.github.com/OWNER/index.json --name github --username USERNAME --password GITHUB_TOKEN
 
 # 发布包
-dotnet nuget push ./bin/Release/YOP.SDK.4.0.0.nupkg --source github --api-key GITHUB_TOKEN
+dotnet nuget push ./bin/Release/YOP.SDK.C.4.0.0.nupkg --source github --api-key GITHUB_TOKEN
 ```
 
 ### 自托管 NuGet 服务器
@@ -259,7 +259,7 @@ dotnet nuget push ./bin/Release/YOP.SDK.4.0.0.nupkg --source github --api-key GI
 dotnet nuget add source https://your-nuget-server.com/v3/index.json --name private-server --username USERNAME --password PASSWORD
 
 # 发布包
-dotnet nuget push ./bin/Release/YOP.SDK.4.0.0.nupkg --source private-server
+dotnet nuget push ./bin/Release/YOP.SDK.C.4.0.0.nupkg --source private-server
 ```
 
 ---
@@ -316,7 +316,7 @@ dotnet pack -c Release -p:PackageVersion=4.1.0 -p:Version=4.1.0
 dotnet pack -c Release -p:PackageVersion=4.1.0-alpha.1
 
 # 发布预发布版本（NuGet.org 默认接受预发布版本）
-dotnet nuget push ./bin/Release/YOP.SDK.4.1.0-alpha.1.nupkg --api-key YOUR_API_KEY --source https://api.nuget.org/v3/index.json
+dotnet nuget push ./bin/Release/YOP.SDK.C.4.1.0-alpha.1.nupkg --api-key YOUR_API_KEY --source https://api.nuget.org/v3/index.json
 ```
 
 ---
@@ -351,10 +351,10 @@ jobs:
           dotnet-version: '10.0.x'
           
       - name: Build
-        run: dotnet build SDK/YOP.SDK.csproj -c Release
+        run: dotnet build SDK/YOP.SDK.C.csproj -c Release
         
       - name: Pack
-        run: dotnet pack SDK/YOP.SDK.csproj -c Release --no-build -o ./nupkg
+        run: dotnet pack SDK/YOP.SDK.C.csproj -c Release --no-build -o ./nupkg
         
       - name: Push to NuGet
         run: dotnet nuget push ./nupkg/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
@@ -379,14 +379,14 @@ steps:
   displayName: 'Build'
   inputs:
     command: 'build'
-    projects: 'SDK/YOP.SDK.csproj'
+    projects: 'SDK/YOP.SDK.C.csproj'
     arguments: '-c Release'
     
 - task: DotNetCoreCLI@2
   displayName: 'Pack'
   inputs:
     command: 'pack'
-    packagesToPack: 'SDK/YOP.SDK.csproj'
+    packagesToPack: 'SDK/YOP.SDK.C.csproj'
     arguments: '-c Release --no-build -o $(Build.ArtifactStagingDirectory)'
     
 - task: NuGetCommand@2
@@ -424,7 +424,7 @@ steps:
 
 ```bash
 #!/bin/bash
-PACKAGE_PATH="./bin/Release/YOP.SDK.4.0.0.nupkg"
+PACKAGE_PATH="./bin/Release/YOP.SDK.C.4.0.0.nupkg"
 API_KEY="YOUR_API_KEY"
 
 # 发布到 NuGet.org

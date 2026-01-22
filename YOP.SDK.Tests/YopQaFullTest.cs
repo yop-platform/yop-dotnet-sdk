@@ -11,7 +11,7 @@ using SDK.enums;
 using Xunit;
 using FluentAssertions;
 
-namespace YOP.SDK.Tests
+namespace YOP.SDK.C.Tests
 {
     /// <summary>
     /// YOP SDK 完整测试类，覆盖Java单元测试中的所有场景

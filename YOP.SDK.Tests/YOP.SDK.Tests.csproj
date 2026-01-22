@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SDK\YOP.SDK.csproj" />
+    <ProjectReference Include="..\SDK\YOP.SDK.C.csproj" />
   </ItemGroup>
 
 </Project>

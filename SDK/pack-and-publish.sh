@@ -11,7 +11,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SDK_DIR="$SCRIPT_DIR"
 NUPKG_DIR="$SDK_DIR/nupkg"
-PACKAGE_NAME="YOP.SDK"
+PACKAGE_NAME="YOP.SDK.C"
 
 # 颜色输出
 RED='\033[0;31m'
@@ -118,9 +118,8 @@ test_package() {
     PACKAGE_VERSION=$(basename "$(ls "$NUPKG_DIR"/*.nupkg | head -n 1)" .nupkg | grep -o '\([0-9]\+\.[0-9]\+\.[0-9]\+\)')
     
     # 安装包 - 直接使用本地路径
-    print_info "安装包 YOP.SDK 版本 $PACKAGE_VERSION..."
-    if dotnet add package YOP.SDK --version "$PACKAGE_VERSION" --source "$NUPKG_DIR" > /dev/null 2>&1; then
-        print_info "✓ 包安装成功"
+    print_info "安装包 YOP.SDK.C 版本 $PACKAGE_VERSION..."
+    if dotnet add package YOP.SDK.C --version "$PACKAGE_VERSION" --source "$NUPKG_DIR" > /dev/null 2>&1; then        print_info "✓ 包安装成功"
         
         # 尝试构建
         print_info "构建测试项目..."
