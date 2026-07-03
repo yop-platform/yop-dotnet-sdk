@@ -28,8 +28,15 @@ namespace SDK.yop.client
         {
             // v3 协议：鉴权/签名参数走 Header；URL 参数只保留业务参数。
             // 这些 protected key 若出现在 query/form 中，服务端侧通常不会纳入签名计算，导致验签不一致。
+            // 开放应用（有 appKey）场景下，customerNo 可能是业务参数，需保留在表单中。
+            bool keepCustomerNoAsBizParam = StringUtils.isNotBlank(request.getAppKey());
+
             foreach (string k in YopConstants.PROTECTED_KEY)
             {
+                if (keepCustomerNoAsBizParam && k == YopConstants.CUSTOMER_NO)
+                {
+                    continue;
+                }
                 request.removeParam(k);
             }
         }
@@ -294,15 +301,21 @@ namespace SDK.yop.client
             headersToSignSet.Add("x-yop-date");
             headersToSignSet.Add("x-yop-content-sha256");
 
-            if (StringUtils.isBlank(request.getCustomerNo()))
+            // 开放应用优先走 x-yop-appkey；仅无 appKey 时以商户编号鉴权（x-yop-customerid）
+            if (StringUtils.isNotBlank(request.getAppKey()))
             {
-                headers.Add("x-yop-appkey", appKey);
+                headers.Add("x-yop-appkey", request.getAppKey());
                 headersToSignSet.Add("x-yop-appkey");
             }
-            else
+            else if (StringUtils.isNotBlank(request.getCustomerNo()))
             {
                 headers.Add("x-yop-customerid", appKey);
                 headersToSignSet.Add("x-yop-customerid");
+            }
+            else
+            {
+                headers.Add("x-yop-appkey", appKey);
+                headersToSignSet.Add("x-yop-appkey");
             }
 
             // Formatting the URL with signing protocol.
